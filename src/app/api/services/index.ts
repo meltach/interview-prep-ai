@@ -175,3 +175,41 @@ The questions should be challenging and specifically tailored to assess the cand
     .filter(Boolean)
     .map((q) => q.replace(/^\d+\.?\s*/, ''))
 }
+
+/**
+ * Parses raw questions output from AI and extracts questions with their rationales
+ * 
+ * @param rawQuestions - The array of strings returned from the AI
+ * @returns Array of objects with question text and rationale
+ */
+export function parseQuestions(rawQuestions: string[]): { text: string; rationale: string }[] {
+  const formattedQuestions: { text: string; rationale: string }[] = [];
+  
+  // Skip the introduction (index 0) and process question-rationale pairs
+  for (let i = 1; i < rawQuestions.length; i += 2) {
+    // Check if this is a question (typically odd indices: 1, 3, 5)
+    if (i < rawQuestions.length && rawQuestions[i].includes('"')) {
+      const questionText = rawQuestions[i]
+        // Clean up the question - remove numbering if present
+        .replace(/^\d+\.\s*/, '')
+        // Remove extra quotation marks
+        .replace(/^["']|["']$/g, '')
+        .trim();
+      
+      // Get the rationale (the next item in the array, if it exists)
+      let rationale = '';
+      if (i + 1 < rawQuestions.length) {
+        // Extract the actual explanation, removing any markdown formatting
+        rationale = rawQuestions[i + 1]
+          .replace(/^\s*\*\s*\*\*Why it's challenging:\*\*/, '')
+          .replace(/^\s*Why it's challenging:\s*/, '')
+          .replace(/^\s*\*\s*/, '')
+          .trim();
+      }
+      
+      formattedQuestions.push({ text: questionText, rationale });
+    }
+  }
+  
+  return formattedQuestions;
+}

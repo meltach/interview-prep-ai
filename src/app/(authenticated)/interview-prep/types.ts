@@ -1,13 +1,13 @@
 export interface Question {
   id: string
   text: string
+  rationale?: string
+  interviewId: string
   userAnswer: string
   feedback?: string
   showFeedback: boolean
   isAnswered: boolean
   isSubmitting: boolean
-  answerId?: string // Optional ID of the saved answer
-  interviewId?: string // ID of the parent interview session
 }
 
 export interface User {
@@ -15,6 +15,7 @@ export interface User {
   name?: string | null
   email?: string | null
   image?: string | null
+  session: Session
 }
 
 export interface Session {

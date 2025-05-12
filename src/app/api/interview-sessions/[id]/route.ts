@@ -68,7 +68,7 @@ export async function GET(
     text: question.text,
     userAnswer: question.answer?.text || '',
     feedback: question.answer?.feedback?.content || '',
-    showFeedback: true,
+    showFeedback: false,
     isAnswered: !!question.answer,
     isSubmitting: false,
     answerId: question.answer?.id || undefined,

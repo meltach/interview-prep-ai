@@ -71,7 +71,7 @@ export function QuestionsList({
                     handleAnswerChange={handleAnswerChange}
                     submitAnswer={submitAnswer}
                     toggleFeedback={toggleFeedback}
-                    readOnly={readOnly} // Pass readOnly prop to QuestionCard
+                    readOnly={readOnly}
                 />
             ))}
 

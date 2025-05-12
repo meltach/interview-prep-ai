@@ -7,6 +7,7 @@ import { QuestionsList } from './components/questions-list';
 import { PageHeader } from './components/page-header';
 import { Button } from '@/components/ui/button';
 import { Question } from './types';
+import { SideNav } from './components/side-nav';
 
 export default function ClientInterviewPrepPage() {
   const [role, setRole] = useState('');
@@ -55,48 +56,6 @@ export default function ClientInterviewPrepPage() {
       q.id === id ? { ...q, userAnswer: value } : q
     ));
   };
-
-  // const submitAnswer = async (id: string) => {
-  //   const questionObj = questions.find(q => q.id === id);
-  //   if (!questionObj || !questionObj.userAnswer.trim()) return;
-
-  //   setQuestions(questions.map(q =>
-  //     q.id === id ? { ...q, isSubmitting: true } : q
-  //   ));
-
-  //   try {
-  //     const res = await fetch('/api/submit-answer', {
-  //       method: 'POST',
-  //       headers: { 'Content-Type': 'application/json' },
-  //       body: JSON.stringify({
-  //         question: questionObj.text,
-  //         answer: questionObj.userAnswer,
-  //         questionId: id // Pass the question ID to the API
-  //       }),
-  //     });
-
-  //     if (!res.ok) throw new Error('Feedback request failed');
-  //     const { feedback, answerId } = await res.json();
-
-  //     setQuestions(questions.map(q =>
-  //       q.id === id
-  //         ? {
-  //           ...q,
-  //           isAnswered: true,
-  //           showFeedback: true,
-  //           isSubmitting: false,
-  //           feedback,
-  //           answerId, // Store the answer ID for potential future operations
-  //         }
-  //         : q
-  //     ));
-  //   } catch (err) {
-  //     console.error('Error submitting answer:', err);
-  //     setQuestions(questions.map(q =>
-  //       q.id === id ? { ...q, isSubmitting: false } : q
-  //     ));
-  //   }
-  // };
 
   const submitAnswer = async (id: string) => {
     const questionObj = questions.find(q => q.id === id);
@@ -158,8 +117,8 @@ export default function ClientInterviewPrepPage() {
   return (
     <div className="flex flex-col min-h-screen bg-gray-50">
       <PageHeader />
-
-      <main className="flex-1 max-w-6xl mx-auto w-full px-4 py-8">
+      <SideNav />
+      <main className="flex-1 max-w-6xl mx-auto w-full px-4 py-8 ml-0 md:ml-16 transition-all duration-300">
         {currentStep === 'setup' ? (
           <SetupForm
             role={role}

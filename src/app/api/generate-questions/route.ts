@@ -1,11 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/app/api/auth/[...nextauth]/route'
-// import OpenAI from 'openai'
-import { prisma } from '@/lib/prisma' // adjust path if needed
-import { generateInterviewQuestions } from '../services'
-
-// const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+import { prisma } from '@/lib/prisma'
+import { generateInterviewQuestions, parseQuestions } from '../services'
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions)
@@ -38,32 +35,21 @@ export async function POST(req: NextRequest) {
       },
     })
 
-    // // Step 2: Generate questions with OpenAI
-    // const prompt = `Given the following resume:\n\n${resume}\n\nGenerate 3 interview questions for a ${role} role. The questions should be challenging and specifically tailored to assess the candidate's suitability for this exact role.`
-
-    // const response = await openai.chat.completions.create({
-    //   model: 'gpt-4.1-mini',
-    //   messages: [{ role: 'user', content: prompt }],
-    //   temperature: 0.7,
-    // })
-
-    // const rawQuestions =
-    //   response.choices[0].message.content
-    //     ?.split('\n')
-    //     .filter(Boolean)
-    //     .map((q) => q.replace(/^\d+\.?\s*/, '')) ?? []
-
-    // Step 2: Generate questions with AI service
     const rawQuestions = await generateInterviewQuestions(resume, role)
     console.log('Generated Questions:', rawQuestions)
 
-    // Step 3: Save questions to DB
+    // Step 2: Parse questions to extract text and rationale
+    const parsedQuestions = parseQuestions(rawQuestions)
+    console.log('Parsed Questions:', parsedQuestions)
+
+    // Step 3: Save questions to DB with rationale
     const savedQuestions = await Promise.all(
-      rawQuestions.map((text, index) =>
+      parsedQuestions.map((question, index) =>
         prisma.question.create({
           data: {
             interviewId: interviewSession.id,
-            text,
+            text: question.text,
+            rationale: question.rationale, // Save the rationale
             order: index + 1,
           },
         })
@@ -76,12 +62,13 @@ export async function POST(req: NextRequest) {
     const responseData = savedQuestions.map((q) => ({
       id: q.id,
       text: q.text,
+      rationale: q.rationale,
       userAnswer: '',
       feedback: '',
       showFeedback: false,
       isAnswered: false,
       isSubmitting: false,
-      interviewId: interviewSession.id, // Include interviewId
+      interviewId: interviewSession.id,
     }))
 
     console.log('Response Data:', responseData)

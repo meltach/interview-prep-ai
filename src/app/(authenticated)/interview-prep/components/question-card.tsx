@@ -11,6 +11,26 @@ import {
     CollapsibleTrigger
 } from '@/components/ui/collapsible';
 import { Question } from '../types';
+import { useState, useEffect } from 'react';
+
+// Helper function to format feedback text with emphasis
+function formatFeedbackText(text: string) {
+    if (!text) return null;
+
+    // Split the text by asterisks to identify emphasized parts
+    const parts = text.split(/(\*[^*]+\*)/g);
+
+    return parts.map((part, index) => {
+        // Check if this part is emphasized (surrounded by asterisks)
+        if (part.startsWith('*') && part.endsWith('*')) {
+            // Remove the asterisks and apply emphasis styling
+            const emphasisText = part.substring(1, part.length - 1);
+            return <em key={index} className="font-medium text-black-700">{emphasisText}</em>;
+        }
+        // Return regular text
+        return <span key={index}>{part}</span>;
+    });
+}
 
 interface QuestionCardProps {
     question: Question;
@@ -27,6 +47,33 @@ export function QuestionCard({
     toggleFeedback,
     readOnly = false
 }: QuestionCardProps) {
+    const [streamedFeedback, setStreamedFeedback] = useState('');
+    const [isStreaming, setIsStreaming] = useState(false);
+
+    useEffect(() => {
+        if (question.showFeedback && question.feedback && !readOnly) {
+            setIsStreaming(true);
+            setStreamedFeedback('');
+
+            let currentIndex = 0;
+            const feedbackText = question.feedback || '';
+
+            const streamInterval = setInterval(() => {
+                if (currentIndex < feedbackText.length) {
+                    // Stream 1-3 characters at a time for natural effect
+                    const charsToAdd = Math.floor(Math.random() * 3) + 1;
+                    currentIndex = Math.min(currentIndex + charsToAdd, feedbackText.length);
+                    setStreamedFeedback(feedbackText.substring(0, currentIndex));
+                } else {
+                    clearInterval(streamInterval);
+                    setIsStreaming(false);
+                }
+            }, 20); // Adjust timing for desired speed
+
+            return () => clearInterval(streamInterval);
+        }
+    }, [question.showFeedback, question.feedback, readOnly]);
+
     return (
         <Card>
             {/* Question */}
@@ -37,6 +84,9 @@ export function QuestionCard({
 
             {/* Answer Section */}
             <CardContent>
+                {readOnly && <h4 className="text-sm font-semibold text-gray-700 mb-2">
+                    Your Answer
+                </h4>}
                 <Textarea
                     placeholder="Type your answer here..."
                     className={`min-h-32 mb-4 ${question.isAnswered ? 'bg-gray-50' : 'bg-white'
@@ -46,8 +96,8 @@ export function QuestionCard({
                     disabled={question.isAnswered || readOnly}
                 />
 
-                {!question.isAnswered || readOnly ? (
-                    <Button
+                {!question.isAnswered ? (
+                    !readOnly && <Button
                         onClick={() => submitAnswer(question.id)}
                         disabled={!question.userAnswer || question.isSubmitting}
                     >
@@ -86,8 +136,17 @@ export function QuestionCard({
                             <div className="mt-4 pt-4">
                                 <Separator className="mb-4" />
                                 <h4 className="text-sm font-semibold text-gray-700 mb-2">AI Feedback</h4>
-                                <div className="p-4 bg-blue-50 rounded-lg text-gray-700 text-sm">
-                                    {question.feedback}
+                                    <div className="p-4 bg-blue-50 rounded-lg text-gray-700 text-sm leading-relaxed">
+                                        {readOnly ? (
+                                            formatFeedbackText(question.feedback || '')
+                                        ) : (
+                                            <>
+                                                {formatFeedbackText(streamedFeedback)}
+                                                {isStreaming && (
+                                                    <span className="animate-pulse ml-0.5">▋</span>
+                                                )}
+                                            </>
+                                        )}
                                 </div>
                             </div>
                         </CollapsibleContent>

@@ -78,6 +78,7 @@ model Question {
   id              String    @id @default(cuid())
   interviewId     String
   text            String    @db.Text
+  rationale       String?
   order           Int       // Order in which questions appear
   answer          Answer?
   interview       InterviewSession @relation(fields: [interviewId], references: [id], onDelete: Cascade)

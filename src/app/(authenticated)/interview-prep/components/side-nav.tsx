@@ -1,3 +1,5 @@
+
+// src\app\(authenticated)\interview-prep\components\side-nav.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -7,25 +9,27 @@ import { ChevronRight, History, X, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
-// Define the type for past interview sessions
 type PastSession = {
     id: string;
     role: string;
     createdAt: string;
 };
 
-// Define the type for grouped sessions
 type GroupedSessions = {
     [key: string]: PastSession[];
 };
 
-export function SideNav() {
+export function SideNav({ onOpenChange }: SideNavProps) {
     const [isOpen, setIsOpen] = useState(true);
     const [pastSessions, setPastSessions] = useState<PastSession[]>([]);
     const [groupedSessions, setGroupedSessions] = useState<GroupedSessions>({});
     const [isLoading, setIsLoading] = useState(false);
     const router = useRouter();
     const pathname = usePathname();
+
+    useEffect(() => {
+        onOpenChange?.(isOpen);
+    }, [isOpen, onOpenChange]);
 
     // Fetch past sessions when component mounts
     useEffect(() => {
@@ -112,7 +116,7 @@ export function SideNav() {
             {/* Collapsible Sidebar */}
             <div
                 className={cn(
-                    "fixed top-16 left-0 h-[calc(100vh-4rem)] bg-white border-r border-gray-200 z-20 transition-all duration-300 flex flex-col",
+                    "fixed top-16 left-0 h-[calc(100vh-4rem)] bg-white border-r border-gray-200 z-20 transition-all duration-300",
                     isOpen ? "w-72" : "w-0"
                 )}
             >
@@ -195,3 +199,8 @@ export function SideNav() {
         </>
     );
 }
+
+export type { SideNavProps };
+type SideNavProps = {
+    onOpenChange?: (isOpen: boolean) => void;
+};

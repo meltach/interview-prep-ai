@@ -5,9 +5,12 @@ import { PageHeader } from '../components/page-header'
 import { Question } from '../types'
 import { SideNav } from '../components/side-nav'
 import { QuestionsList } from '../components/questions-list'
+import { cn } from '@/lib/utils'
 
 export default function InterviewHistoryPage() {
     const { sessionId } = useParams()
+
+    const [isSidebarOpen, setIsSidebarOpen] = useState(true);
     const [questions, setQuestions] = useState<Question[]>([]);
     const [role, setRole] = useState('')
     const [isLoading, setIsLoading] = useState(true)
@@ -48,10 +51,22 @@ export default function InterviewHistoryPage() {
     };
 
     return (
-        <div className="flex flex-col min-h-screen bg-gray-50">
+        <div className="flex flex-col min-h-screen bg-gray-50 relative">
             <PageHeader />
-            <SideNav />
-            <main className="flex-1 max-w-6xl mx-auto w-full px-4 py-8 ml-0 md:ml-16 transition-all duration-300">
+            <div
+                className={cn(
+                    "fixed top-0 left-0 h-full z-30 transition-transform duration-300",
+                )}
+                style={{ width: 288 }} // 72 * 4 = 288px (Tailwind's w-72)
+            >
+                <SideNav onOpenChange={setIsSidebarOpen} />
+            </div>
+            <main
+                className={cn(
+                    "flex-1 p-4 transition-all duration-300",
+                    isSidebarOpen ? "ml-72" : "ml-0"
+                )}
+            >
                 <h2 className="text-xl font-semibold mb-6">Interview for: {role}</h2>
                 {isLoading ? (
                     <div className="p-8 text-center text-gray-500">Loading interview data...</div>

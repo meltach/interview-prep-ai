@@ -1,3 +1,4 @@
+// src\app\(authenticated)\interview-prep\components\page-header.tsx
 'use client';
 
 import { User } from 'lucide-react';

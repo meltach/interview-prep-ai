@@ -1,3 +1,5 @@
+// src\app\(authenticated)\interview-prep\components\question-card.tsx
+
 'use client';
 
 import { ChevronDown, ChevronUp, Send } from 'lucide-react';
@@ -136,14 +138,14 @@ export function QuestionCard({
                             <div className="mt-4 pt-4">
                                 <Separator className="mb-4" />
                                 <h4 className="text-sm font-semibold text-gray-700 mb-2">AI Feedback</h4>
-                                    <div className="p-4 bg-blue-50 rounded-lg text-gray-700 text-sm leading-relaxed">
+                                    <div className="p-4 bg-blue-50 rounded-lg text-gray-700 text-sm leading-relaxed space-y-2">
                                         {readOnly ? (
                                             formatFeedbackText(question.feedback || '')
                                         ) : (
                                             <>
                                                 {formatFeedbackText(streamedFeedback)}
                                                 {isStreaming && (
-                                                    <span className="animate-pulse ml-0.5">▋</span>
+                                                        <span className="inline-block animate-pulse ml-0.5">▋</span>
                                                 )}
                                             </>
                                         )}

@@ -1,3 +1,5 @@
+
+// src\app\(authenticated)\interview-prep\components\setup-form.tsx
 'use client';
 
 import { Upload, Check } from 'lucide-react';
@@ -8,9 +10,6 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { useRef } from 'react';
-
-// import Link from 'next/link';
-
 interface SetupFormProps {
     role: string;
     setRole: (role: string) => void;
@@ -32,9 +31,6 @@ export function SetupForm({
     generateQuestions,
     isGenerating,
 }: SetupFormProps) {
-    // const { data: session } = useSession();
-    // console.log('Session:', session);
-
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -48,28 +44,15 @@ export function SetupForm({
             };
             reader.readAsText(file);
         }
-    };
+    }
 
     return (
         <Card className="mb-6">
             <CardHeader>
                 <CardTitle className="text-xl">Let&#39;s prepare for your interview</CardTitle>
-
-                {/* <div className="flex justify-between items-center">
-                    <CardTitle className="text-xl">Let&#39;s prepare for your interview</CardTitle>
-                    {sessionId && (
-                        <Link
-                            href={`api/interview-sessions/${sessionId}`}
-                            className="text-sm text-blue-600 hover:underline"
-                        >
-                            View past sessions
-                        </Link>
-                    )}
-                </div> */}
             </CardHeader>
             <CardContent>
                 <div className="space-y-6">
-                    {/* Job Role Input */}
                     <div className="space-y-2">
                         <Label htmlFor="role">
                             What role are you interviewing for?
@@ -130,8 +113,6 @@ export function SetupForm({
                             </div>
                         </div>
                     </div>
-
-                    {/* Generate Questions Button */}
                     <Button
                         className="w-full"
                         onClick={generateQuestions}

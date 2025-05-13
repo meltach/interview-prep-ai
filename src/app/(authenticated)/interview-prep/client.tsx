@@ -1,3 +1,6 @@
+
+// src\app\(authenticated)\interview-prep\client.tsx
+
 'use client';
 
 import { useState } from 'react';
@@ -8,8 +11,10 @@ import { PageHeader } from './components/page-header';
 import { Button } from '@/components/ui/button';
 import { Question } from './types';
 import { SideNav } from './components/side-nav';
+import { cn } from '@/lib/utils';
 
 export default function ClientInterviewPrepPage() {
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [role, setRole] = useState('');
   const [resume, setResume] = useState('');
   const [fileName, setFileName] = useState('');
@@ -73,14 +78,13 @@ export default function ClientInterviewPrepPage() {
           question: questionObj.text,
           answer: questionObj.userAnswer,
           questionId: id,
-          interviewId: currentInterviewId // Include the interview ID
+          interviewId: currentInterviewId 
         }),
       });
 
       if (!res.ok) throw new Error('Feedback request failed');
       const { feedback, answerId } = await res.json();
 
-      // Rest of the function remains the same
       setQuestions(questions.map(q =>
         q.id === id
           ? {
@@ -115,10 +119,19 @@ export default function ClientInterviewPrepPage() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-50">
-      <PageHeader />
-      <SideNav />
-      <main className="flex-1 max-w-6xl mx-auto w-full px-4 py-8 ml-0 md:ml-16 transition-all duration-300">
+    <div className="flex flex-col min-h-screen bg-gray-50 overflow-x-hidden">
+      <div className="fixed top-0 left-0 right-0 z-20 bg-white border-b border-gray-200">
+        <PageHeader />
+      </div>
+      <div className="flex pt-16">
+
+        <SideNav onOpenChange={setIsSidebarOpen} />
+        <main className={cn(
+          "flex-1 max-w-6xl w-full px-4 py-8 transition-all duration-300",
+          isSidebarOpen
+            ? "ml-72"
+            : "mx-auto"
+        )}>
         {currentStep === 'setup' ? (
           <SetupForm
             role={role}
@@ -156,8 +169,14 @@ export default function ClientInterviewPrepPage() {
           </>
         )}
       </main>
+      </div>
 
-      <footer className="bg-white border-t border-gray-200 py-4">
+      <footer className={cn(
+        "bg-white border-t border-gray-200 py-4 transition-all duration-300",
+        isSidebarOpen
+          ? "ml-72"
+          : "ml-0"
+      )}>
         <div className="max-w-6xl mx-auto px-4 text-center text-sm text-gray-500">
           © 2025 InterviewPrep AI. Powered by AI to help you ace your interviews.
         </div>

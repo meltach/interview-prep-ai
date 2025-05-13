@@ -5,7 +5,7 @@ import { prisma } from '@/lib/prisma'
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { sessionId: string } }
 ) {
   const session = await getServerSession(authOptions)
 
@@ -13,28 +13,8 @@ export async function GET(
     return new NextResponse('Unauthorized', { status: 401 })
   }
 
-  //   exports.Prisma.AnswerScalarFieldEnum = {
-  //     id: 'id',
-  //     questionId: 'questionId',
-  //     text: 'text',
-  //     createdAt: 'createdAt',
-  //     updatedAt: 'updatedAt'
-
-  //   };
-
-  //   exports.Prisma.FeedbackScalarFieldEnum = {
-  //     id: 'id',
-  //     answerId: 'answerId',
-  //     content: 'content',
-  //     clarity: 'clarity',
-  //     relevance: 'relevance',
-  //     depth: 'depth',
-  //     createdAt: 'createdAt',
-  //     updatedAt: 'updatedAt'
-  //   };
-
   const interviewSession = await prisma.interviewSession.findUnique({
-    where: { id: params.id },
+    where: { id: params.sessionId },
     include: {
       questions: {
         include: {

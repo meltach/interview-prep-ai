@@ -1,10 +1,10 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
-import { QuestionsList } from '../../components/questions-list'
-import { PageHeader } from '../../components/page-header'
-import { Question } from '../../types'
-import { SideNav } from '../../components/side-nav'
+import { PageHeader } from '../components/page-header'
+import { Question } from '../types'
+import { SideNav } from '../components/side-nav'
+import { QuestionsList } from '../components/questions-list'
 
 export default function InterviewHistoryPage() {
     const { sessionId } = useParams()
@@ -16,9 +16,11 @@ export default function InterviewHistoryPage() {
         const fetchSession = async () => {
             setIsLoading(true)
             try {
-                const res = await fetch(`/api/interview-sessions/${sessionId}`)
+                const res = await fetch(`/api/history/${sessionId}`)
+                console.log('Response:', res)
                 if (res.ok) {
                     const data = await res.json()
+                    console.log('Fetched session data:', data)
                     setRole(data.role)
                     setQuestions(data.questions)
                 }
@@ -59,9 +61,9 @@ export default function InterviewHistoryPage() {
                         setQuestions={noopSetQuestions}
                         handleAnswerChange={noopHandleAnswerChange}
                         submitAnswer={noopSubmitAnswer}
-                            toggleFeedback={toggleFeedback}
-                            readOnly={true}
-                        />
+                        toggleFeedback={toggleFeedback}
+                        readOnly={true}
+                    />
                 ) : (
                     <div className="p-8 text-center text-gray-500">No questions found for this interview</div>
                 )}

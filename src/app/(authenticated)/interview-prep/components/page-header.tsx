@@ -13,7 +13,6 @@ import { useSession, signOut } from 'next-auth/react';
 
 export function PageHeader() {
     const { data: session } = useSession();
-    console.log('SESSION:', session);
 
     return (
         <header className="bg-white shadow-sm">

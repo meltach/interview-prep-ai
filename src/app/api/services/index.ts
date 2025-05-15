@@ -3,8 +3,12 @@ import { GoogleGenerativeAI } from '@google/generative-ai'
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY as string)
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+const deepseek = new OpenAI({
+  apiKey: process.env.DEEPSEEK_API_KEY as string,
+  baseURL: 'https://api.deepseek.com',
+})
 
-export type AIProvider = 'openai' | 'gemini'
+export type AIProvider = 'openai' | 'gemini' | 'deepseek'
 
 const defaultProvider: AIProvider =
   (process.env.DEFAULT_AI_PROVIDER as AIProvider) || 'gemini'
@@ -21,23 +25,37 @@ export async function generateText(
     switch (provider) {
       case 'openai':
         return await generateWithOpenAI(prompt)
-
+      case 'deepseek':
+        return await generateWithDeepSeek(prompt)
       case 'gemini':
         return await generateWithGemini(prompt)
       default:
-        // Fallback to openai if provider is not recognized
-        return await generateWithOpenAI(prompt)
+        // Fallback to deepseek if provider is not recognized (they are cheaper)
+        return await generateWithDeepSeek(prompt)
     }
   } catch (error) {
     console.error(`Error with ${provider}:`, error)
 
     // If the default provider fails, try an alternative
     if (provider === defaultProvider) {
-      const fallbackProvider: AIProvider =
-        defaultProvider === 'openai' ? 'gemini' : 'openai'
-      return await generateText(prompt, fallbackProvider)
-    }
+      const fallbackProviders: AIProvider[] = [
+        'openai',
+        'gemini',
+        'deepseek',
+      ].filter((p) => p !== defaultProvider) as AIProvider[]
 
+      for (const fallbackProvider of fallbackProviders) {
+        try {
+          return await generateText(prompt, fallbackProvider)
+        } catch (fallbackError) {
+          console.error(
+            `Error with fallback provider ${fallbackProvider}:`,
+            fallbackError
+          )
+          continue
+        }
+      }
+    }
     throw error
   }
 }
@@ -58,6 +76,16 @@ async function generateWithGemini(prompt: string): Promise<string> {
   const result = await model.generateContent(prompt)
   const response = result.response
   return response.text() || 'No content generated'
+}
+
+async function generateWithDeepSeek(prompt: string): Promise<string> {
+  const response = await deepseek.chat.completions.create({
+    messages: [{ role: 'user', content: prompt }],
+    model: 'deepseek-chat',
+    temperature: 1.3,
+  })
+
+  return response.choices[0].message.content?.trim() || 'No content generated'
 }
 
 /**

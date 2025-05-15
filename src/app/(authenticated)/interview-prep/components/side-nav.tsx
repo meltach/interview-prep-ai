@@ -4,9 +4,11 @@ import { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronRight, History, X, Plus } from 'lucide-react';
+import { ChevronRight, History, X, Plus, MoreVertical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { toast } from 'sonner';
 
 type PastSession = {
     id: string;
@@ -23,6 +25,7 @@ export function SideNav({ onOpenChange }: SideNavProps) {
     const [pastSessions, setPastSessions] = useState<PastSession[]>([]);
     const [groupedSessions, setGroupedSessions] = useState<GroupedSessions>({});
     const [isLoading, setIsLoading] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
     const router = useRouter();
     const pathname = usePathname();
 
@@ -110,6 +113,43 @@ export function SideNav({ onOpenChange }: SideNavProps) {
         return pathname === `/interview-prep/${sessionId}`;
     };
 
+    // Delete interview session 
+    const handleDeleteInterview = async (sessionToDelete: string) => {
+        if (!sessionToDelete) return;
+
+        setIsDeleting(true);
+        try {
+            const res = await fetch(`/api/interview-sessions`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ sessionId: sessionToDelete }),
+
+            });
+
+            if (!res.ok) {
+                throw new Error('Failed to delete session');
+            }
+
+            // Update the list by removing the deleted session
+            setPastSessions(prev => prev.filter(session => session.id !== sessionToDelete));
+
+            // Re-group the sessions
+            groupSessionsByDate(pastSessions.filter(session => session.id !== sessionToDelete));
+
+            toast.success('Interview deleted successfully');
+
+            router.push('/interview-prep')
+
+        } catch (error) {
+            console.error('Error deleting session:', error);
+            toast.error('Failed to delete interview session');
+        } finally {
+            setIsDeleting(false);
+        }
+    };
+
     return (
         <>
             <AnimatePresence>
@@ -121,13 +161,13 @@ export function SideNav({ onOpenChange }: SideNavProps) {
                         transition={{ type: 'spring', stiffness: 300, damping: 30 }}
                         className="fixed top-16 left-0 h-[calc(100vh-4rem)] bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 z-20 w-72 shadow-lg"
                     >
-                    <>
-                        <div className="p-4 border-b border-gray-200 flex justify-between items-center">
+                        <>
+                            <div className="p-4 border-b border-gray-200 flex justify-between items-center">
                                 <h2 className="font-semibold text-gray-800">History</h2>
-                            <Button variant="ghost" size="sm" onClick={() => setIsOpen(false)} className="h-8 w-8 p-0">
-                                <X className="h-4 w-4" />
-                            </Button>
-                        </div>
+                                <Button variant="ghost" size="sm" onClick={() => setIsOpen(false)} className="h-8 w-8 p-0">
+                                    <X className="h-4 w-4" />
+                                </Button>
+                            </div>
                             <div className="p-3 border-t border-gray-200">
                                 <Button
                                     variant="outline"
@@ -138,10 +178,10 @@ export function SideNav({ onOpenChange }: SideNavProps) {
                                     New Interview
                                 </Button>
                             </div>
-                        <div className="flex-1 overflow-y-auto">
-                            {isLoading ? (
-                                <div className="p-4 text-sm text-gray-500">Loading sessions...</div>
-                            ) : pastSessions.length > 0 ? (
+                            <div className="flex-1 overflow-y-auto">
+                                {isLoading || isDeleting ? (
+                                    <div className="p-4 text-sm text-gray-500">Loading sessions...</div>
+                                ) : pastSessions.length > 0 ? (
                                     <div className="py-2">
                                         {Object.entries(groupedSessions).map(([group, sessions]) => (
                                             sessions.length > 0 && (
@@ -155,7 +195,7 @@ export function SideNav({ onOpenChange }: SideNavProps) {
                                                                 <Link href={`/interview-prep/${session.id}`} passHref>
                                                                     <div
                                                                         className={cn(
-                                                                            "flex items-start px-4 py-3 hover:bg-gray-100 transition-colors cursor-pointer",
+                                                                            "flex items-start px-4 py-3 hover:bg-gray-100 transition-colors cursor-pointer group",
                                                                             isSessionActive(session.id) && "bg-blue-50 border-l-4 border-blue-500"
                                                                         )}
                                                                     >
@@ -166,6 +206,27 @@ export function SideNav({ onOpenChange }: SideNavProps) {
                                                                                 {formatDate(session.createdAt)}, {formatTime(session.createdAt)}
                                                                             </p>
                                                                         </div>
+                                                                        <div>
+                                                                            <DropdownMenu>
+                                                                                <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                                                                                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 hover:opacity-100 transition-opacity">
+                                                                                        <MoreVertical className="h-4 w-4" />
+                                                                                    </Button>
+                                                                                </DropdownMenuTrigger>
+                                                                                <DropdownMenuContent align="end">
+                                                                                    <DropdownMenuItem
+                                                                                        className="text-red-600 focus:text-red-600"
+                                                                                        onClick={(e) => {
+                                                                                            console.log("Event", e);
+                                                                                            console.log("session", session);
+                                                                                            handleDeleteInterview(session.id);
+                                                                                        }}
+                                                                                    >
+                                                                                        Delete
+                                                                                    </DropdownMenuItem>
+                                                                                </DropdownMenuContent>
+                                                                            </DropdownMenu>
+                                                                        </div>
                                                                     </div>
                                                                 </Link>
                                                             </li>
@@ -175,11 +236,11 @@ export function SideNav({ onOpenChange }: SideNavProps) {
                                             )
                                         ))}
                                     </div>
-                            ) : (
-                                <div className="p-4 text-sm text-gray-500">No past sessions found</div>
-                            )}
+                                ) : (
+                                    <div className="p-4 text-sm text-gray-500">No past sessions found</div>
+                                )}
                             </div>
-                    </>
+                        </>
                     </motion.div>
                 )}
             </AnimatePresence>
@@ -190,14 +251,14 @@ export function SideNav({ onOpenChange }: SideNavProps) {
                     animate={{ opacity: 1 }}
                     transition={{ delay: 0.2 }}
                 >
-                <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setIsOpen(true)}
-                    className="fixed top-20 left-0 bg-white rounded-r-md rounded-l-none border border-l-0 z-20 h-10"
-                >
-                    <ChevronRight className="h-4 w-4" />
-                </Button>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setIsOpen(true)}
+                        className="fixed top-20 left-0 bg-white rounded-r-md rounded-l-none border border-l-0 z-20 h-10"
+                    >
+                        <ChevronRight className="h-4 w-4" />
+                    </Button>
                 </motion.div>
             )}
         </>

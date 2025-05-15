@@ -3,79 +3,172 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/app/api/auth/[...nextauth]/route'
 import { prisma } from '@/lib/prisma'
 import { generateInterviewQuestions, parseQuestions } from '../services'
+import pdf from 'pdf-parse'
+
+// Define allowed MIME types
+const ALLOWED_FILE_TYPES = [
+  'application/pdf', // PDF
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // DOCX
+  'application/msword', // DOC
+  'text/plain', // TXT
+]
+
+// Max file size (5MB)
+const MAX_FILE_SIZE = 5 * 1024 * 1024
 
 export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions)
-
-  if (!session?.user?.email) {
-    return new NextResponse('Unauthorized', { status: 401 })
-  }
-
-  const { role, resume } = await req.json()
-
-  if (!role || !resume) {
-    return new NextResponse('Missing input', { status: 400 })
-  }
-
   try {
+    // Auth check
+    const session = await getServerSession(authOptions)
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    // Parse FormData
+    const formData = await req.formData()
+    const role = formData.get('role') as string
+    const resumeText = formData.get('resumeText') as string | null
+    const resumeFile = formData.get('resumeFile') as File | null
+
+    // Validate inputs
+    if (!role?.trim()) {
+      return NextResponse.json(
+        { error: 'Job role is required' },
+        { status: 400 }
+      )
+    }
+
+    let finalResumeText = resumeText || ''
+
+    // Handle file upload if provided
+    if (resumeFile) {
+      // Security checks
+      if (!ALLOWED_FILE_TYPES.includes(resumeFile.type)) {
+        return NextResponse.json(
+          {
+            error:
+              'Invalid file type. Please upload PDF, DOCX, DOC, or TXT files only',
+          },
+          { status: 400 }
+        )
+      }
+
+      if (resumeFile.size > MAX_FILE_SIZE) {
+        return NextResponse.json(
+          {
+            error: 'File size exceeds 5MB limit',
+          },
+          { status: 413 }
+        )
+      }
+
+      // Extract text based on file type
+      try {
+        if (resumeFile.type === 'application/pdf') {
+          const arrayBuffer = await resumeFile.arrayBuffer()
+          const pdfData = await pdf(Buffer.from(arrayBuffer))
+          finalResumeText = pdfData.text
+        } else {
+          // For text-based files (DOCX, TXT)
+          finalResumeText = await resumeFile.text()
+        }
+      } catch (error) {
+        console.error('[File Processing Error]', error)
+        return NextResponse.json(
+          {
+            error: 'Failed to process the uploaded file',
+          },
+          { status: 422 }
+        )
+      }
+    }
+
+    // Ensure we have resume content from either source
+    if (!finalResumeText?.trim()) {
+      return NextResponse.json(
+        {
+          error: 'Resume content is required',
+        },
+        { status: 400 }
+      )
+    }
+
+    // Get user
     const user = await prisma.user.findUnique({
       where: { email: session.user.email },
     })
 
     if (!user) {
-      return new NextResponse('User not found', { status: 404 })
+      return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
-    // Step 1: Create InterviewSession
+    // Create interview session
     const interviewSession = await prisma.interviewSession.create({
       data: {
         userId: user.id,
         jobRole: role,
-        resume,
+        resume: finalResumeText,
       },
     })
 
-    const rawQuestions = await generateInterviewQuestions(resume, role)
-    console.log('Generated Questions:', rawQuestions)
-
-    // Step 2: Parse questions to extract text and rationale
-    const parsedQuestions = parseQuestions(rawQuestions)
-    console.log('Parsed Questions:', parsedQuestions)
-
-    // Step 3: Save questions to DB with rationale
-    const savedQuestions = await Promise.all(
-      parsedQuestions.map((question, index) =>
-        prisma.question.create({
-          data: {
-            interviewId: interviewSession.id,
-            text: question.text,
-            rationale: question.rationale, // Save the rationale
-            order: index + 1,
-          },
-        })
+    // Generate and parse questions
+    try {
+      const rawQuestions = await generateInterviewQuestions(
+        finalResumeText,
+        role
       )
-    )
+      const parsedQuestions = parseQuestions(rawQuestions)
 
-    console.log('Saved Questions:', savedQuestions)
+      // Save questions to database
+      const savedQuestions = await Promise.all(
+        parsedQuestions.map((question, index) =>
+          prisma.question.create({
+            data: {
+              interviewId: interviewSession.id,
+              text: question.text,
+              rationale: question.rationale,
+              order: index + 1,
+            },
+          })
+        )
+      )
 
-    // Step 4: Return questions to client
-    const responseData = savedQuestions.map((q) => ({
-      id: q.id,
-      text: q.text,
-      rationale: q.rationale,
-      userAnswer: '',
-      feedback: '',
-      showFeedback: false,
-      isAnswered: false,
-      isSubmitting: false,
-      interviewId: interviewSession.id,
-    }))
+      // Format response
+      const responseData = savedQuestions.map((q) => ({
+        id: q.id,
+        text: q.text,
+        rationale: q.rationale,
+        userAnswer: '',
+        feedback: '',
+        showFeedback: false,
+        isAnswered: false,
+        isSubmitting: false,
+        interviewId: interviewSession.id,
+      }))
 
-    console.log('Response Data:', responseData)
+      return NextResponse.json(responseData)
+    } catch (error) {
+      console.error('[AI Processing Error]', error)
 
-    return NextResponse.json(responseData)
+      // Clean up the interview session if we failed to generate questions
+      await prisma.interviewSession.delete({
+        where: { id: interviewSession.id },
+      })
+
+      return NextResponse.json(
+        {
+          error: 'Failed to generate interview questions',
+        },
+        { status: 500 }
+      )
+    }
   } catch (err) {
     console.error('[API Error]', err)
-    return new NextResponse('Failed to generate questions', { status: 500 })
+    return NextResponse.json(
+      {
+        error: 'An unexpected error occurred',
+      },
+      { status: 500 }
+    )
   }
 }

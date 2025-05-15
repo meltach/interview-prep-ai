@@ -4,7 +4,8 @@ import { useState } from 'react';
 import { PlusCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { QuestionCard } from './question-card';
-import { Question } from '../types';
+import { Question } from '../../../types';
+import { motion } from 'framer-motion';
 
 interface QuestionsListProps {
     questions: Question[];
@@ -12,7 +13,7 @@ interface QuestionsListProps {
     handleAnswerChange: (id: string, value: string) => void;
     submitAnswer: (id: string) => void;
     toggleFeedback: (id: string) => void;
-    readOnly?: boolean; // Add readOnly as an optional prop
+    readOnly?: boolean;
 }
 
 export function QuestionsList({
@@ -63,16 +64,26 @@ export function QuestionsList({
     };
 
     return (
-        <div className="space-y-6">
-            {questions.map((question) => (
-                <QuestionCard
+        <div className="space-y-4">
+            {questions.map((question, index) => (
+                <motion.div
                     key={question.id}
-                    question={question}
-                    handleAnswerChange={handleAnswerChange}
-                    submitAnswer={submitAnswer}
-                    toggleFeedback={toggleFeedback}
-                    readOnly={readOnly}
-                />
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{
+                        delay: index * 0.05,
+                        type: "spring",
+                        stiffness: 100
+                    }}
+                >
+                    <QuestionCard
+                        question={question}
+                        handleAnswerChange={handleAnswerChange}
+                        submitAnswer={submitAnswer}
+                        toggleFeedback={toggleFeedback}
+                        readOnly={readOnly}
+                    />
+                </motion.div>
             ))}
 
             {/* Only show the "Generate More Questions" button if not in readOnly mode */}

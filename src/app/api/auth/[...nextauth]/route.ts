@@ -1,10 +1,9 @@
-// File: app/api/auth/[...nextauth]/route.ts
-import NextAuth, { Session } from 'next-auth'
+import NextAuth, { NextAuthOptions, Session, User } from 'next-auth'
 import GitHubProvider from 'next-auth/providers/github'
 import { PrismaAdapter } from '@auth/prisma-adapter'
 import { prisma } from '@/lib/prisma'
 
-export const authOptions = {
+export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
   providers: [
     GitHubProvider({
@@ -13,15 +12,15 @@ export const authOptions = {
     }),
   ],
   session: {
-    strategy: 'database' as const,
+    strategy: 'database',
   },
   callbacks: {
-    session: async ({ session, user }: { session: Session; user: unknown }) => {
+    session: async ({ session, user }: { session: Session; user: User }) => {
       return {
         ...session,
         user: {
           ...session.user,
-          id: (user as { id: string }).id,
+          id: user.id,
         },
       }
     },

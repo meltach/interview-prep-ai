@@ -1,5 +1,3 @@
-// src\app\(authenticated)\interview-prep\components\question-card.tsx
-
 'use client';
 
 import { ChevronDown, ChevronUp, Send } from 'lucide-react';
@@ -12,7 +10,7 @@ import {
     CollapsibleContent,
     CollapsibleTrigger
 } from '@/components/ui/collapsible';
-import { Question } from '../types';
+import { Question } from '../../../types';
 import { useState, useEffect } from 'react';
 
 // Helper function to format feedback text with emphasis
@@ -34,6 +32,13 @@ function formatFeedbackText(text: string) {
     });
 }
 
+function cleanQuestionText(text: string) {
+    return text
+        .replace(/^>\s*/, '')  // Remove leading '>' and any spaces after it
+        .replace(/\*/g, '')    // Remove all asterisks
+        .replace(/"/g, '')     // Remove all double quotes
+        .trim();               // Remove any leading/trailing whitespace
+}
 interface QuestionCardProps {
     question: Question;
     handleAnswerChange: (id: string, value: string) => void;
@@ -81,7 +86,7 @@ export function QuestionCard({
             {/* Question */}
             <CardHeader className="pb-3">
                 <CardTitle className="text-lg">Question</CardTitle>
-                <p className="text-gray-700 mt-1 font-normal">{question.text}</p>
+                <p className="text-gray-700 mt-1 font-normal">{cleanQuestionText(question.text)}</p>
             </CardHeader>
 
             {/* Answer Section */}

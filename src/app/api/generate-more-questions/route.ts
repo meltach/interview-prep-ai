@@ -1,11 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/app/api/auth/[...nextauth]/route'
-// import OpenAI from 'openai'
 import { prisma } from '@/lib/prisma'
 import { generateMoreQuestions } from '../services'
-
-// const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions)
@@ -48,32 +45,6 @@ export async function POST(req: NextRequest) {
     })
 
     const existingQuestionsText = existingQuestions.map((q) => q.text)
-
-    // Generate new questions with OpenAI
-    //     const prompt = `
-    // Given the following resume:
-
-    // ${interviewSession.resume}
-
-    // And for the job role: ${interviewSession.jobRole}
-
-    // Generate 2 additional interview questions that are different from these existing questions:
-    // ${existingQuestionsText.join('\n')}
-
-    // The questions should be challenging and specifically tailored to assess the candidate's suitability for this exact role.
-    // `
-
-    //     const response = await openai.chat.completions.create({
-    //       model: 'gpt-4.1-mini',
-    //       messages: [{ role: 'user', content: prompt }],
-    //       temperature: 0.7,
-    //     })
-
-    // const rawQuestions =
-    //   response.choices[0].message.content
-    //     ?.split('\n')
-    //     .filter(Boolean)
-    //     .map((q) => q.replace(/^\d+\.?\s*/, '')) ?? []
 
     // Generate new questions with AI service
     const rawQuestions = await generateMoreQuestions(

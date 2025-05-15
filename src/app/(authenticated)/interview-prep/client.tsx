@@ -1,6 +1,3 @@
-
-// src\app\(authenticated)\interview-prep\client.tsx
-
 'use client';
 
 import { useState } from 'react';
@@ -9,178 +6,93 @@ import { SetupForm } from './components/setup-form';
 import { QuestionsList } from './components/questions-list';
 import { PageHeader } from './components/page-header';
 import { Button } from '@/components/ui/button';
-import { Question } from './types';
 import { SideNav } from './components/side-nav';
 import { cn } from '@/lib/utils';
+import { SetupFormSkeleton, QuestionSkeleton } from './components/skeletons';
+import { useInterviewForm } from '@/app/hooks/useInterviewForm';
+import { useQuestionInteractions } from '@/app/hooks/useQuestionInteractions';
 
 export default function ClientInterviewPrepPage() {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const [role, setRole] = useState('');
-  const [resume, setResume] = useState('');
-  const [fileName, setFileName] = useState('');
-  const [questions, setQuestions] = useState<Question[]>([]);
-  const [currentStep, setCurrentStep] = useState<'setup' | 'questions'>('setup');
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [currentInterviewId, setCurrentInterviewId] = useState<string | null>(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
-  const generateQuestions = async () => {
-    if (!role || !resume) return;
+  const {
+    formState,
+    updateField,
+    questions,
+    setQuestions,
+    currentInterviewId,
+    currentStep,
+    isGenerating,
+    isParsing,
+    handleFileUpload,
+    generateQuestions,
+    resetForm
+  } = useInterviewForm();
 
-    setIsGenerating(true);
+  const {
+    handleAnswerChange,
+    submitAnswer,
+    toggleFeedback
+  } = useQuestionInteractions(questions, setQuestions, currentInterviewId);
 
-    try {
-      const res = await fetch('/api/generate-questions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ role, resume }),
-      });
-
-      if (!res.ok) throw new Error('Failed to generate questions');
-
-
-      const data = await res.json();
-
-      // Set the current interview ID from the first question
-      if (data.length > 0 && data[0].interviewId) {
-        setCurrentInterviewId(data[0].interviewId);
-      }
-
-      setQuestions(data);
-      setCurrentStep('questions');
-    } catch (err) {
-      console.error('Error generating questions:', err);
-    } finally {
-      setIsGenerating(false);
-    }
-  };
-
-  const handleAnswerChange = (id: string, value: string) => {
-    setQuestions(questions.map(q =>
-      q.id === id ? { ...q, userAnswer: value } : q
-    ));
-  };
-
-  const submitAnswer = async (id: string) => {
-    const questionObj = questions.find(q => q.id === id);
-    if (!questionObj || !questionObj.userAnswer.trim()) return;
-
-    setQuestions(questions.map(q =>
-      q.id === id ? { ...q, isSubmitting: true } : q
-    ));
-
-    try {
-      const res = await fetch('/api/submit-answer', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          question: questionObj.text,
-          answer: questionObj.userAnswer,
-          questionId: id,
-          interviewId: currentInterviewId 
-        }),
-      });
-
-      if (!res.ok) throw new Error('Feedback request failed');
-      const { feedback, answerId } = await res.json();
-
-      setQuestions(questions.map(q =>
-        q.id === id
-          ? {
-            ...q,
-            isAnswered: true,
-            showFeedback: true,
-            isSubmitting: false,
-            feedback,
-            answerId,
-          }
-          : q
-      ));
-    } catch (err) {
-      console.error('Error submitting answer:', err);
-      setQuestions(questions.map(q =>
-        q.id === id ? { ...q, isSubmitting: false } : q
-      ));
-    }
-  };
-
-
-  const toggleFeedback = (id: string) => {
-    setQuestions(questions.map(q =>
-      q.id === id ? { ...q, showFeedback: !q.showFeedback } : q
-    ));
-  };
-
-  const handleStartOver = () => {
-    setQuestions([]);
-    setCurrentInterviewId(null);
-    setCurrentStep('setup');
-  };
+  const isLoading = isGenerating || isParsing;
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-50 overflow-x-hidden">
-      <div className="fixed top-0 left-0 right-0 z-20 bg-white border-b border-gray-200">
+    <div className="flex flex-col min-h-screen bg-gray-50 dark:bg-gray-900">
+      <div className="sticky top-0 z-20 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
         <PageHeader />
       </div>
-      <div className="flex pt-16">
-
+      <div className="flex flex-1 overflow-hidden">
         <SideNav onOpenChange={setIsSidebarOpen} />
         <main className={cn(
-          "flex-1 max-w-6xl w-full px-4 py-8 transition-all duration-300",
-          isSidebarOpen
-            ? "ml-72"
-            : "mx-auto"
+          "flex-1 max-w-4xl w-full px-4 py-8 overflow-y-auto",
+          isSidebarOpen ? "ml-72" : "mx-auto"
         )}>
-        {currentStep === 'setup' ? (
-          <SetupForm
-            role={role}
-            setRole={setRole}
-            resume={resume}
-            setResume={setResume}
-            fileName={fileName}
-            setFileName={setFileName}
-            generateQuestions={generateQuestions}
-            isGenerating={isGenerating}
-          />
-        ) : (
-          <>
-            <div className="mb-6 flex justify-between items-center">
-              <h2 className="text-xl font-semibold text-gray-800">
-                Interview Questions for {role}
-              </h2>
-              <Button
-                onClick={handleStartOver}
-                variant="ghost"
-                className="text-sm flex items-center"
-              >
-                <X className="mr-1 h-4 w-4" />
-                Start Over
-              </Button>
+          {isLoading && currentStep === 'setup' ? (
+            <SetupFormSkeleton />
+          ) : isLoading ? (
+            <div className="space-y-4">
+              {[...Array(3)].map((_, i) => (
+                <QuestionSkeleton key={i} />
+              ))}
             </div>
+          ) : currentStep === 'setup' ? (
+            <SetupForm
+                  formState={formState}
+                  updateField={updateField}
+                  handleFileUpload={handleFileUpload}
+                  generateQuestions={generateQuestions}
+                  isGenerating={isGenerating}
+                  isParsing={isParsing}
+                />
+              ) : (
+                  <div className="space-y-6">
+                    <div className="flex justify-between items-center p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
+                      <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100">
+                        Interview Questions for {formState.role}
+                      </h2>
+                      <Button
+                        onClick={resetForm}
+                        variant="ghost"
+                        size="sm"
+                        className="text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700"
+                      >
+                        <X className="mr-1 h-4 w-4" />
+                        Start Over
+                      </Button>
+                    </div>
 
-            <QuestionsList
-              questions={questions}
-              setQuestions={setQuestions}
-              handleAnswerChange={handleAnswerChange}
-              submitAnswer={submitAnswer}
-              toggleFeedback={toggleFeedback}
-            />
-          </>
-        )}
-      </main>
+                    <QuestionsList
+                      questions={questions}
+                      setQuestions={setQuestions}
+                      handleAnswerChange={handleAnswerChange}
+                      submitAnswer={submitAnswer}
+                      toggleFeedback={toggleFeedback}
+                    />
+            </div>
+          )}
+        </main>
       </div>
-
-      <footer className={cn(
-        "bg-white border-t border-gray-200 py-4 transition-all duration-300",
-        isSidebarOpen
-          ? "ml-72"
-          : "ml-0"
-      )}>
-        <div className="max-w-6xl mx-auto px-4 text-center text-sm text-gray-500">
-          © 2025 InterviewPrep AI. Powered by AI to help you ace your interviews.
-        </div>
-      </footer>
     </div>
   );
 }

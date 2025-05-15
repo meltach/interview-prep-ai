@@ -1,26 +1,11 @@
-// src/services/ai-service.ts
 import OpenAI from 'openai'
-// import Anthropic from '@anthropic-ai/sdk'
 import { GoogleGenerativeAI } from '@google/generative-ai'
-// import Together from '@together-ai/sdk'
-// import { CohereClient } from 'cohere-ai'
 
-// Initialize the API clients
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY as string)
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
-// const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
-// const together = new Together({ apiKey: process.env.TOGETHER_API_KEY })
-// const cohere = new CohereClient({ token: process.env.COHERE_API_KEY })
 
-// Define the provider type
-export type AIProvider =
-  | 'openai'
-  | 'anthropic'
-  | 'gemini'
-  | 'together'
-  | 'cohere'
+export type AIProvider = 'openai' | 'gemini'
 
-// Set your default provider here
 const defaultProvider: AIProvider =
   (process.env.DEFAULT_AI_PROVIDER as AIProvider) || 'gemini'
 
@@ -31,6 +16,7 @@ export async function generateText(
   prompt: string,
   provider: AIProvider = defaultProvider
 ): Promise<string> {
+  console.log(`Using provider: ${provider}`)
   try {
     switch (provider) {
       case 'openai':
@@ -38,8 +24,6 @@ export async function generateText(
 
       case 'gemini':
         return await generateWithGemini(prompt)
-      case 'together':
-
       default:
         // Fallback to openai if provider is not recognized
         return await generateWithOpenAI(prompt)
@@ -50,8 +34,7 @@ export async function generateText(
     // If the default provider fails, try an alternative
     if (provider === defaultProvider) {
       const fallbackProvider: AIProvider =
-        defaultProvider === 'openai' ? 'anthropic' : 'openai'
-      console.log(`Falling back to ${fallbackProvider}`)
+        defaultProvider === 'openai' ? 'gemini' : 'openai'
       return await generateText(prompt, fallbackProvider)
     }
 
@@ -62,7 +45,7 @@ export async function generateText(
 //Provider-specific implementations
 async function generateWithOpenAI(prompt: string): Promise<string> {
   const response = await openai.chat.completions.create({
-    model: 'gpt-4',
+    model: 'o4-mini',
     messages: [{ role: 'user', content: prompt }],
     temperature: 0.7,
   })
@@ -70,44 +53,12 @@ async function generateWithOpenAI(prompt: string): Promise<string> {
   return response.choices[0].message.content?.trim() || 'No content generated'
 }
 
-// async function generateWithAnthropic(prompt: string): Promise<string> {
-//   const response = await anthropic.messages.create({
-//     model: 'claude-3-haiku-20240307',
-//     max_tokens: 1000,
-//     messages: [{ role: 'user', content: prompt }],
-//     temperature: 0.7,
-//   })
-
-//   return response.content[0].text?.trim() || 'No content generated'
-// }
-
 async function generateWithGemini(prompt: string): Promise<string> {
   const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' })
   const result = await model.generateContent(prompt)
   const response = result.response
   return response.text() || 'No content generated'
 }
-
-// async function generateWithTogether(prompt: string): Promise<string> {
-//   const response = await together.chat.completions.create({
-//     model: 'meta-llama/Llama-3-8b-chat',
-//     messages: [{ role: 'user', content: prompt }],
-//     temperature: 0.7,
-//     max_tokens: 800,
-//   })
-
-//   return response.choices[0].message.content?.trim() || 'No content generated'
-// }
-
-// async function generateWithCohere(prompt: string): Promise<string> {
-//   const response = await cohere.chat({
-//     model: 'command',
-//     message: prompt,
-//     temperature: 0.7,
-//   })
-
-//   return response.text?.trim() || 'No content generated'
-// }
 
 /**
  * Generate interview questions
@@ -178,13 +129,15 @@ The questions should be challenging and specifically tailored to assess the cand
 
 /**
  * Parses raw questions output from AI and extracts questions with their rationales
- * 
+ *
  * @param rawQuestions - The array of strings returned from the AI
  * @returns Array of objects with question text and rationale
  */
-export function parseQuestions(rawQuestions: string[]): { text: string; rationale: string }[] {
-  const formattedQuestions: { text: string; rationale: string }[] = [];
-  
+export function parseQuestions(
+  rawQuestions: string[]
+): { text: string; rationale: string }[] {
+  const formattedQuestions: { text: string; rationale: string }[] = []
+
   // Skip the introduction (index 0) and process question-rationale pairs
   for (let i = 1; i < rawQuestions.length; i += 2) {
     // Check if this is a question (typically odd indices: 1, 3, 5)
@@ -194,22 +147,22 @@ export function parseQuestions(rawQuestions: string[]): { text: string; rational
         .replace(/^\d+\.\s*/, '')
         // Remove extra quotation marks
         .replace(/^["']|["']$/g, '')
-        .trim();
-      
+        .trim()
+
       // Get the rationale (the next item in the array, if it exists)
-      let rationale = '';
+      let rationale = ''
       if (i + 1 < rawQuestions.length) {
         // Extract the actual explanation, removing any markdown formatting
         rationale = rawQuestions[i + 1]
           .replace(/^\s*\*\s*\*\*Why it's challenging:\*\*/, '')
           .replace(/^\s*Why it's challenging:\s*/, '')
           .replace(/^\s*\*\s*/, '')
-          .trim();
+          .trim()
       }
-      
-      formattedQuestions.push({ text: questionText, rationale });
+
+      formattedQuestions.push({ text: questionText, rationale })
     }
   }
-  
-  return formattedQuestions;
+
+  return formattedQuestions
 }

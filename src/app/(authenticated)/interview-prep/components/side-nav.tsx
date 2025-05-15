@@ -1,10 +1,9 @@
-
-// src\app\(authenticated)\interview-prep\components\side-nav.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
+import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronRight, History, X, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -20,7 +19,7 @@ type GroupedSessions = {
 };
 
 export function SideNav({ onOpenChange }: SideNavProps) {
-    const [isOpen, setIsOpen] = useState(true);
+    const [isOpen, setIsOpen] = useState(false);
     const [pastSessions, setPastSessions] = useState<PastSession[]>([]);
     const [groupedSessions, setGroupedSessions] = useState<GroupedSessions>({});
     const [isLoading, setIsLoading] = useState(false);
@@ -108,27 +107,37 @@ export function SideNav({ onOpenChange }: SideNavProps) {
 
     // Determine if the current path is for a specific session
     const isSessionActive = (sessionId: string) => {
-        return pathname === `interview-prep/${sessionId}`;
+        return pathname === `/interview-prep/${sessionId}`;
     };
 
     return (
         <>
-            {/* Collapsible Sidebar */}
-            <div
-                className={cn(
-                    "fixed top-16 left-0 h-[calc(100vh-4rem)] bg-white border-r border-gray-200 z-20 transition-all duration-300",
-                    isOpen ? "w-72" : "w-0"
-                )}
-            >
+            <AnimatePresence>
                 {isOpen && (
+                    <motion.div
+                        initial={{ x: -300, opacity: 0 }}
+                        animate={{ x: 0, opacity: 1 }}
+                        exit={{ x: -300, opacity: 0 }}
+                        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                        className="fixed top-16 left-0 h-[calc(100vh-4rem)] bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 z-20 w-72 shadow-lg"
+                    >
                     <>
                         <div className="p-4 border-b border-gray-200 flex justify-between items-center">
-                            <h2 className="font-semibold text-gray-800">Interview History</h2>
+                                <h2 className="font-semibold text-gray-800">History</h2>
                             <Button variant="ghost" size="sm" onClick={() => setIsOpen(false)} className="h-8 w-8 p-0">
                                 <X className="h-4 w-4" />
                             </Button>
                         </div>
-
+                            <div className="p-3 border-t border-gray-200">
+                                <Button
+                                    variant="outline"
+                                    className="w-full justify-start text-sm gap-2"
+                                    onClick={() => router.push('/interview-prep')}
+                                >
+                                    <Plus className="h-4 w-4" />
+                                    New Interview
+                                </Button>
+                            </div>
                         <div className="flex-1 overflow-y-auto">
                             {isLoading ? (
                                 <div className="p-4 text-sm text-gray-500">Loading sessions...</div>
@@ -143,7 +152,7 @@ export function SideNav({ onOpenChange }: SideNavProps) {
                                                     <ul>
                                                         {sessions.map((session) => (
                                                             <li key={session.id}>
-                                                                <Link href={`interview-prep/${session.id}`} passHref>
+                                                                <Link href={`/interview-prep/${session.id}`} passHref>
                                                                     <div
                                                                         className={cn(
                                                                             "flex items-start px-4 py-3 hover:bg-gray-100 transition-colors cursor-pointer",
@@ -169,24 +178,18 @@ export function SideNav({ onOpenChange }: SideNavProps) {
                             ) : (
                                 <div className="p-4 text-sm text-gray-500">No past sessions found</div>
                             )}
-                        </div>
-
-                        <div className="p-3 border-t border-gray-200">
-                            <Button
-                                variant="outline"
-                                className="w-full justify-start text-sm gap-2"
-                                onClick={() => router.push('/interview-prep')}
-                            >
-                                <Plus className="h-4 w-4" />
-                                New Interview
-                            </Button>
-                        </div>
+                            </div>
                     </>
+                    </motion.div>
                 )}
-            </div>
+            </AnimatePresence>
 
-            {/* Toggle button that appears when sidebar is closed */}
             {!isOpen && (
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.2 }}
+                >
                 <Button
                     variant="outline"
                     size="sm"
@@ -195,6 +198,7 @@ export function SideNav({ onOpenChange }: SideNavProps) {
                 >
                     <ChevronRight className="h-4 w-4" />
                 </Button>
+                </motion.div>
             )}
         </>
     );

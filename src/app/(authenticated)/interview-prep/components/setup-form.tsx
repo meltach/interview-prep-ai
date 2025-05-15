@@ -1,5 +1,3 @@
-
-// src\app\(authenticated)\interview-prep\components\setup-form.tsx
 'use client';
 
 import { Upload, Check } from 'lucide-react';
@@ -10,41 +8,37 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { useRef } from 'react';
+import { LoadingSpinner } from './skeletons';
+import { InterviewFormState } from '@/app/hooks/useInterviewForm';
+
 interface SetupFormProps {
-    role: string;
-    setRole: (role: string) => void;
-    resume: string;
-    setResume: (resume: string) => void;
-    fileName: string;
-    setFileName: (fileName: string) => void;
-    generateQuestions: () => void;
+    formState: InterviewFormState;
+    updateField: <K extends keyof InterviewFormState>(field: K, value: InterviewFormState[K]) => void;
+    handleFileUpload: (file: File | null) => void;
+    generateQuestions: () => Promise<void>;
     isGenerating: boolean;
+    isParsing: boolean;
 }
 
 export function SetupForm({
-    role,
-    setRole,
-    resume,
-    setResume,
-    fileName,
-    setFileName,
+    formState,
+    updateField,
+    handleFileUpload,
     generateQuestions,
     isGenerating,
+    isParsing
 }: SetupFormProps) {
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const { role, resume, fileName } = formState;
 
-    const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (file) {
-            setFileName(file.name);
-            // In a real app, you would handle file reading here
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                setResume(event.target?.result as string);
-            };
-            reader.readAsText(file);
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const uploadedFile = e.target.files?.[0];
+        if (uploadedFile) {
+            handleFileUpload(uploadedFile);
         }
-    }
+    };
+
+    const isLoading = isGenerating || isParsing;
 
     return (
         <Card className="mb-6">
@@ -53,76 +47,79 @@ export function SetupForm({
             </CardHeader>
             <CardContent>
                 <div className="space-y-6">
-                    <div className="space-y-2">
-                        <Label htmlFor="role">
+                    <div className="space-y-3">
+                        <Label htmlFor="role" className="text-gray-700 dark:text-gray-300">
                             What role are you interviewing for?
                         </Label>
                         <Input
                             id="role"
                             placeholder="e.g. Frontend Engineer, Product Manager"
                             value={role}
-                            onChange={(e) => setRole(e.target.value)}
+                            onChange={(e) => updateField('role', e.target.value)}
+                            className="bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600"
                         />
                     </div>
 
-                    {/* Resume Input */}
                     <div className="space-y-2">
-                        <Label>
-                            Upload or paste your resume
-                        </Label>
-
+                        <Label>Upload or paste your resume</Label>
                         <div className="space-y-4">
-                            {/* Text Area */}
                             <Textarea
                                 placeholder="Paste your resume here..."
                                 className="min-h-32"
                                 value={resume}
-                                onChange={(e) => setResume(e.target.value)}
+                                onChange={(e) => updateField('resume', e.target.value)}
                             />
 
-                            {/* Or divider */}
                             <div className="flex items-center">
                                 <Separator className="flex-1" />
                                 <span className="px-4 text-sm text-gray-500">OR</span>
                                 <Separator className="flex-1" />
                             </div>
 
-                            {/* File Upload */}
                             <div className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-lg p-6 bg-gray-50">
                                 <Upload className="h-6 w-6 text-gray-400 mb-2" />
-                                <p className="text-sm text-gray-600 mb-2">Upload your resume (PDF, DOCX)</p>
+                                <p className="text-sm text-gray-600 mb-2">Upload your resume (PDF, DOCX, TXT)</p>
                                 <Button
                                     variant="outline"
                                     onClick={() => fileInputRef.current?.click()}
+                                    disabled={isLoading}
                                 >
                                     Browse Files
                                     <input
                                         ref={fileInputRef}
                                         type="file"
                                         className="hidden"
-                                        onChange={handleFileUpload}
+                                        onChange={handleFileChange}
                                         accept=".pdf,.docx,.doc,.txt"
+                                        disabled={isLoading}
                                     />
                                 </Button>
                                 {fileName && (
                                     <div className="mt-3 text-sm text-gray-600 flex items-center">
                                         <Check className="h-4 w-4 text-green-500 mr-1" />
                                         {fileName}
+                                        {formState.file?.type === 'application/pdf' && (
+                                            <span className="ml-2 text-gray-500 text-xs">
+                                                (Will be processed when generating questions)
+                                            </span>
+                                        )}
                                     </div>
                                 )}
                             </div>
                         </div>
                     </div>
                     <Button
-                        className="w-full"
+                        className="w-full bg-blue-600 hover:bg-blue-700 transition-colors"
                         onClick={generateQuestions}
-                        disabled={!role || !resume || isGenerating}
+                        disabled={!role || (!formState.file && !resume) || isLoading}
                     >
-                        {isGenerating ? (
-                            <>
-                                <div className="animate-spin mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
-                                Generating Questions...
-                            </>
+                        {isLoading ? (
+                            <div className="flex items-center gap-2">
+                                <LoadingSpinner size={4} />
+                                <span>
+                                    {isParsing ? "Processing file..." : "Generating questions..."}
+                                </span>
+                            </div>
                         ) : (
                             'Generate Interview Questions'
                         )}

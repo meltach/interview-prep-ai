@@ -24,6 +24,7 @@ export default function ClientHistoryPage() {
                 const res = await fetch(`/api/history/${sessionId}`)
                 if (res.ok) {
                     const data = await res.json()
+                    console.log('Session data:', data)
                     setRole(data.role)
                     setQuestions(data.questions)
                     if (data.createdAt) {

@@ -58,5 +58,6 @@ export async function GET(
   return NextResponse.json({
     role: interviewSession.jobRole,
     questions: formattedQuestions,
+    createdAt: interviewSession.createdAt,
   })
 }

@@ -2,6 +2,7 @@
 
 import { ChevronDown, ChevronUp, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import ReactMarkdown from 'react-markdown'
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -12,32 +13,12 @@ import {
 } from '@/components/ui/collapsible';
 import { Question } from '../../../types';
 import { useState, useEffect } from 'react';
-
-// Helper function to format feedback text with emphasis
-function formatFeedbackText(text: string) {
-    if (!text) return null;
-
-    // Split the text by asterisks to identify emphasized parts
-    const parts = text.split(/(\*[^*]+\*)/g);
-
-    return parts.map((part, index) => {
-        // Check if this part is emphasized (surrounded by asterisks)
-        if (part.startsWith('*') && part.endsWith('*')) {
-            // Remove the asterisks and apply emphasis styling
-            const emphasisText = part.substring(1, part.length - 1);
-            return <em key={index} className="font-medium text-black-700">{emphasisText}</em>;
-        }
-        // Return regular text
-        return <span key={index}>{part}</span>;
-    });
-}
+import './style.css'
 
 function cleanQuestionText(text: string) {
     return text
-        .replace(/^>\s*/, '')  // Remove leading '>' and any spaces after it
-        .replace(/\*/g, '')    // Remove all asterisks
         .replace(/"/g, '')     // Remove all double quotes
-        .trim();               // Remove any leading/trailing whitespace
+        .replace(/^>\s*/, '')  // Remove leading '>' and any spaces after it
 }
 interface QuestionCardProps {
     question: Question;
@@ -75,7 +56,7 @@ export function QuestionCard({
                     clearInterval(streamInterval);
                     setIsStreaming(false);
                 }
-            }, 20); // Adjust timing for desired speed
+            }, 10); // Adjust timing for desired speed
 
             return () => clearInterval(streamInterval);
         }
@@ -86,7 +67,12 @@ export function QuestionCard({
             {/* Question */}
             <CardHeader className="pb-3">
                 <CardTitle className="text-lg">Question</CardTitle>
-                <p className="text-gray-700 mt-1 font-normal">{cleanQuestionText(question.text)}</p>
+                <div className='markdown-preview'>
+                    <ReactMarkdown>
+                        {cleanQuestionText(question.text)}
+                    </ReactMarkdown>
+                </div>
+                {/* <p className="text-gray-700 mt-1 font-normal">{cleanQuestionText(question.text)}</p> */}
             </CardHeader>
 
             {/* Answer Section */}
@@ -143,16 +129,17 @@ export function QuestionCard({
                             <div className="mt-4 pt-4">
                                 <Separator className="mb-4" />
                                 <h4 className="text-sm font-semibold text-gray-700 mb-2">AI Feedback</h4>
-                                    <div className="p-4 bg-blue-50 rounded-lg text-gray-700 text-sm leading-relaxed space-y-2">
+                                    <div className="p-4 bg-slate-50 rounded-lg text-gray-700 text-sm leading-relaxed space-y-2">
                                         {readOnly ? (
-                                            formatFeedbackText(question.feedback || '')
+                                            <div className='markdown-preview'>
+                                                <ReactMarkdown>{question.feedback ?? ''}</ReactMarkdown>
+                                            </div>
                                         ) : (
-                                            <>
-                                                {formatFeedbackText(streamedFeedback)}
-                                                {isStreaming && (
-                                                        <span className="inline-block animate-pulse ml-0.5">▋</span>
-                                                )}
-                                            </>
+                                                <div className='markdown-preview'>
+                                                    <ReactMarkdown>
+                                                        {streamedFeedback + (isStreaming ? ' ▋' : '')}
+                                                    </ReactMarkdown>
+                                                </div>
                                         )}
                                 </div>
                             </div>

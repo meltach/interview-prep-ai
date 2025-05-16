@@ -15,12 +15,9 @@ export function PageHeader() {
     const { data: session } = useSession();
 
     return (
-      <header className="bg-white dark:bg-gray-800">
+        <header className="fixed top-0 left-0 right-0 bg-white dark:bg-gray-800 z-10 ml-16"> {/* Added ml-16 to offset the collapsed sidebar width */}
           <div className="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
-              <div className="flex items-center space-x-3">
-                  <div className="w-8 h-8 bg-blue-600 rounded-md flex items-center justify-center">
-                      <span className="text-white font-bold">IP</span>
-                  </div>
+                <div className="flex items-center space-x-3">
                   <h1 className="text-lg font-semibold text-gray-800 dark:text-gray-100">InterviewPrep</h1>
               </div>
               <DropdownMenu>

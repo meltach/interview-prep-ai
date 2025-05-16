@@ -5,7 +5,7 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY as string)
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
 const deepseek = new OpenAI({
   apiKey: process.env.DEEPSEEK_API_KEY as string,
-  baseURL: 'https://api.deepseek.com',
+  baseURL: 'https://api.deepseek.com/v1',
 })
 
 export type AIProvider = 'openai' | 'gemini' | 'deepseek'
@@ -95,16 +95,30 @@ export async function generateInterviewQuestions(
   resume: string,
   role: string
 ): Promise<string[]> {
-  const prompt = `Given the following resume:\n\n${resume}\n\nGenerate 3 interview questions for a ${role} role. The questions should be challenging and specifically tailored to assess the candidate's suitability for this exact role.`
+  const prompt = `
+As an expert ${role} interviewer, carefully analyze this resume:
+\`\`\`
+${resume}
+\`\`\`
+
+Generate 3 interview questions tailored specifically to this candidate's background for a ${role} position.
+
+Create questions that:
+- Assess both technical competence and soft skills relevant to the role
+- Challenge the candidate to demonstrate their expertise from past experiences
+- Include 1 behavioral question, 1 technical question, and 1 situational/problem-solving question
+- Reference specific elements from their resume when relevant
+
+Format each as a complete question without numbering.
+`
 
   const content = await generateText(prompt)
 
   return content
     .split('\n')
     .filter(Boolean)
-    .map((q) => q.replace(/^\d+\.?\s*/, ''))
+    .map((q) => q.replace(/^\d+\.?\s*/, '').trim())
 }
-
 /**
  * Generate feedback for an interview answer
  */
@@ -113,14 +127,19 @@ export async function generateAnswerFeedback(
   answer: string
 ): Promise<string> {
   const prompt = `
-You are an experienced interview coach. A user was asked the following question:
-
+You are an experienced interview coach specializing in professional roles. A candidate was asked:
 "${question}"
 
-Here is the user's answer:
+Their answer was:
 "${answer}"
 
-Give a concise paragraph of constructive feedback. Mention what was good, what could be improved, and suggest how to improve.
+Provide concise, constructive feedback (max 150 words) that:
+1. Highlights 1-2 specific strengths in their response
+2. Identifies 1-2 specific areas for improvement
+3. Offers actionable advice to enhance their answer
+4. If relevant, suggests a brief example of how a stronger response might be phrased
+
+Use markdown formatting for clarity: **bold** for key points and \`code\` for any technical terms.
 `
 
   return await generateText(prompt)
@@ -135,16 +154,18 @@ export async function generateMoreQuestions(
   existingQuestions: string[]
 ): Promise<string[]> {
   const prompt = `
-Given the following resume:
-
+As an expert technical interviewer for ${role} positions, analyze this resume:
+\`\`\`
 ${resume}
+\`\`\`
 
-And for the job role: ${role}
+Generate 2 challenging, role-specific interview questions that:
+- Target skills/experiences specifically mentioned in the resume
+- Test both technical knowledge and practical application
+- Are different from these existing questions:
+${existingQuestions.map((q) => `- "${q}"`).join('\n')}
 
-Generate 2 additional interview questions that are different from these existing questions:
-${existingQuestions.join('\n')}
-
-The questions should be challenging and specifically tailored to assess the candidate's suitability for this exact role.
+Each question should assess the candidate's actual fit for this ${role} role. Include one behavioral question and one technical/situational question. Format each as a complete question without numbering.
 `
 
   const content = await generateText(prompt)
@@ -152,7 +173,7 @@ The questions should be challenging and specifically tailored to assess the cand
   return content
     .split('\n')
     .filter(Boolean)
-    .map((q) => q.replace(/^\d+\.?\s*/, ''))
+    .map((q) => q.replace(/^\d+\.?\s*/, '').trim())
 }
 
 /**
@@ -194,3 +215,4 @@ export function parseQuestions(
 
   return formattedQuestions
 }
+

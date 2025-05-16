@@ -96,6 +96,13 @@ export function useInterviewForm() {
 
       if (data.length > 0 && data[0].interviewId) {
         setCurrentInterviewId(data[0].interviewId)
+        // router.push(`/interview/${data[0].interviewId}`)
+        // update the URL to include the interview ID
+        window.history.pushState(
+          {},
+          '',
+          `/interview-prep/${data[0].interviewId}`
+        )
       }
 
       setQuestions(data)

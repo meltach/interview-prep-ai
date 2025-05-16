@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { LoadingSpinner } from './skeletons';
 import { InterviewFormState } from '@/app/hooks/useInterviewForm';
 
@@ -30,6 +30,8 @@ export function SetupForm({
 }: SetupFormProps) {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const { role, resume, fileName } = formState;
+    const [showTooltip, setShowTooltip] = useState(false);
+
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const uploadedFile = e.target.files?.[0];
@@ -39,6 +41,13 @@ export function SetupForm({
     };
 
     const isLoading = isGenerating || isParsing;
+    const isButtonDisabled = !role || (!formState.file && !resume) || isLoading;
+
+    const tooltipMessage = !role
+        ? "Role is required"
+        : (!formState.file && !resume)
+            ? "Resume is required (upload or paste)"
+            : "";
 
     return (
         <Card className="mb-6">
@@ -78,7 +87,7 @@ export function SetupForm({
 
                             <div className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-lg p-6 bg-gray-50">
                                 <Upload className="h-6 w-6 text-gray-400 mb-2" />
-                                <p className="text-sm text-gray-600 mb-2">Upload your resume (PDF, DOCX, TXT)</p>
+                                <p className="text-sm text-gray-600 mb-2">Upload your resume (PDF, TXT)</p>
                                 <Button
                                     variant="outline"
                                     onClick={() => fileInputRef.current?.click()}
@@ -90,7 +99,7 @@ export function SetupForm({
                                         type="file"
                                         className="hidden"
                                         onChange={handleFileChange}
-                                        accept=".pdf,.docx,.doc,.txt"
+                                        accept=".pdf,.txt"
                                         disabled={isLoading}
                                     />
                                 </Button>
@@ -108,11 +117,18 @@ export function SetupForm({
                             </div>
                         </div>
                     </div>
-                    <Button
-                        className="w-full bg-blue-600 hover:bg-blue-700 transition-colors"
-                        onClick={generateQuestions}
-                        disabled={!role || (!formState.file && !resume) || isLoading}
+                    <div
+                        className="relative w-full"
+                        onMouseEnter={() => {
+                            if (isButtonDisabled && tooltipMessage) setShowTooltip(true);
+                        }}
+                        onMouseLeave={() => setShowTooltip(false)}
                     >
+                    <Button
+                            className="w-full bg-blue-600 hover:bg-blue-700 transition-colors relative"
+                        onClick={generateQuestions}
+                            disabled={isButtonDisabled}
+                        >
                         {isLoading ? (
                             <div className="flex items-center gap-2">
                                 <LoadingSpinner size={4} />
@@ -123,7 +139,13 @@ export function SetupForm({
                         ) : (
                             'Generate Interview Questions'
                         )}
+                            {isButtonDisabled && tooltipMessage && showTooltip && (
+                                <span className="absolute left-1/2 -translate-x-1/2 -top-10 bg-gray-800 text-white text-xs rounded px-3 py-1 shadow-lg z-10 whitespace-nowrap">
+                                    {tooltipMessage}
+                                </span>
+                            )}
                     </Button>
+                    </div>
                 </div>
             </CardContent>
         </Card>

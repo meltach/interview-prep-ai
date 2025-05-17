@@ -50,50 +50,50 @@ export default function ClientInterviewPrepPage() {
         }}
       >
         <PageHeader />
-        <main className="flex-1 overflow-y-auto pt-16">
+        <main className="flex-1 overflow-y-auto pt-16 custom-scrollbar">
           <div className="container mx-auto px-6 py-8">
 
-          {isLoading && currentStep === 'setup' ? (
-            <SetupFormSkeleton />
-          ) : isLoading ? (
-                <>
-              {[...Array(3)].map((_, i) => (
-                <QuestionSkeleton key={i} />
-              ))}
-                </>
-          ) : currentStep === 'setup' ? (
-            <SetupForm
-                  formState={formState}
-                  updateField={updateField}
-                  handleFileUpload={handleFileUpload}
-                  generateQuestions={generateQuestions}
-                  isGenerating={isGenerating}
-                  isParsing={isParsing}
-                />
-              ) : (
-                    <div className="space-y-6">
-                      <div className="flex justify-between items-center p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
-                        <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100">
-                          Interview Questions for {formState.role}
-                        </h2>
-                      <Button
-                        onClick={resetForm}
-                        variant="ghost"
-                        size="sm"
-                        className="text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700"
-                      >
-                        <X className="mr-1 h-4 w-4" />
-                        Start Over
-                      </Button>
-                    </div>
+            {isLoading && currentStep === 'setup' ? (
+              <SetupFormSkeleton />
+            ) : isLoading ? (
+              <>
+                {[...Array(3)].map((_, i) => (
+                  <QuestionSkeleton key={i} />
+                ))}
+              </>
+            ) : currentStep === 'setup' ? (
+              <SetupForm
+                formState={formState}
+                updateField={updateField}
+                handleFileUpload={handleFileUpload}
+                generateQuestions={generateQuestions}
+                isGenerating={isGenerating}
+                isParsing={isParsing}
+              />
+            ) : (
+              <div className="space-y-6">
+                <div className="flex justify-between items-center p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
+                  <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100">
+                    Interview Questions for {formState.role}
+                  </h2>
+                  <Button
+                    onClick={resetForm}
+                    variant="ghost"
+                    size="sm"
+                    className="text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700"
+                  >
+                    <X className="mr-1 h-4 w-4" />
+                    Start Over
+                  </Button>
+                </div>
 
-                    <QuestionsList
-                      questions={questions}
-                      setQuestions={setQuestions}
-                      handleAnswerChange={handleAnswerChange}
-                      submitAnswer={submitAnswer}
-                      toggleFeedback={toggleFeedback}
-                    />
+                <QuestionsList
+                  questions={questions}
+                  setQuestions={setQuestions}
+                  handleAnswerChange={handleAnswerChange}
+                  submitAnswer={submitAnswer}
+                  toggleFeedback={toggleFeedback}
+                />
               </div>
             )}
           </div>

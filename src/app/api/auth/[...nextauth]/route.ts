@@ -1,7 +1,18 @@
-import NextAuth, { NextAuthOptions, Session, User } from 'next-auth'
+import NextAuth, { NextAuthOptions } from 'next-auth'
 import GitHubProvider from 'next-auth/providers/github'
 import { PrismaAdapter } from '@auth/prisma-adapter'
 import { prisma } from '@/lib/prisma'
+
+declare module 'next-auth' {
+  interface Session {
+    user: {
+      id: string
+      name?: string | null
+      email?: string | null
+      image?: string | null
+    }
+  }
+}
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
@@ -12,21 +23,23 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   session: {
-    strategy: 'database',
+    strategy: 'jwt', // Using JWT strategy
   },
   callbacks: {
-    session: async ({ session, user }: { session: Session; user: User }) => {
-      return {
-        ...session,
-        user: {
-          ...session.user,
-          id: user.id,
-        },
+    async jwt({ token, user }) {
+      if (user) {
+        token.id = user.id
       }
+      return token
+    },
+    async session({ session, token }) {
+      if (token?.id && session.user) {
+        session.user.id = token.id as string
+      }
+      return session
     },
   },
 }
-
 const handler = NextAuth(authOptions)
 
 export { handler as GET, handler as POST }

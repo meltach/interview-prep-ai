@@ -4,25 +4,25 @@ import { useState } from 'react';
 import { PlusCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { QuestionCard } from './question-card';
-import { Question } from '../../../types';
 import { motion } from 'framer-motion';
+import { Question } from '@/app/types';
 
 interface QuestionsListProps {
     questions: Question[];
-    setQuestions: (questions: Question[]) => void;
     handleAnswerChange: (id: string, value: string) => void;
     submitAnswer: (id: string) => void;
     toggleFeedback: (id: string) => void;
     readOnly?: boolean;
+    interviewId?: string | null; // Added for generateMoreQuestions
 }
 
 export function QuestionsList({
     questions,
-    setQuestions,
     handleAnswerChange,
     submitAnswer,
     toggleFeedback,
-    readOnly = false // Default to false to maintain current behavior
+    readOnly = false,
+    interviewId = null
 }: QuestionsListProps) {
     const [isGenerating, setIsGenerating] = useState(false);
 
@@ -30,12 +30,6 @@ export function QuestionsList({
         setIsGenerating(true);
 
         try {
-            // Get the current interview ID from the first question
-            // This assumes all questions are part of the same interview session
-            const interviewId = questions.length > 0 ?
-                questions[0].interviewId :
-                null;
-
             if (!interviewId) {
                 console.error('No interview ID found');
                 return;
@@ -55,12 +49,22 @@ export function QuestionsList({
             if (!res.ok) throw new Error('Failed to generate more questions');
 
             const newQuestions = await res.json();
-            setQuestions([...questions, ...newQuestions]);
+            // Note: Since we're using SWR mutations, we'll handle this in the parent component
+            // The parent should handle the mutation after receiving new questions
+            // We'll need to return the new questions to the parent
+            return newQuestions;
         } catch (error) {
             console.error('Error generating more questions:', error);
+            throw error;
         } finally {
             setIsGenerating(false);
         }
+    };
+
+    // Determine if we should show submit button in read-only mode
+    const shouldShowSubmit = (question: Question) => {
+        if (!readOnly) return true;
+        return !question.isAnswered && question.userAnswer?.trim();
     };
 
     return (
@@ -79,9 +83,9 @@ export function QuestionsList({
                     <QuestionCard
                         question={question}
                         handleAnswerChange={handleAnswerChange}
-                        submitAnswer={submitAnswer}
+                        submitAnswer={shouldShowSubmit(question) ? submitAnswer : undefined}
                         toggleFeedback={toggleFeedback}
-                        readOnly={readOnly}
+                        readOnly={readOnly && question.isAnswered} // Only enforce readOnly for answered questions
                     />
                 </motion.div>
             ))}
@@ -91,7 +95,17 @@ export function QuestionsList({
                 <Button
                     variant="outline"
                     className="w-full py-6"
-                    onClick={generateMoreQuestions}
+                    onClick={async () => {
+                        try {
+                            const newQuestions = await generateMoreQuestions();
+                            // Parent component should handle the mutation with SWR
+                            // This assumes the parent is listening for a promise resolution
+                            return newQuestions;
+                        } catch (error) {
+                            console.error('Error generating more questions:', error);
+                            // Error is already logged in generateMoreQuestions
+                        }
+                    }}
                     disabled={isGenerating}
                 >
                     {isGenerating ? (

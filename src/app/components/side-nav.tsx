@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
@@ -12,7 +12,8 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { toast } from 'sonner';
-import { formatDate, formatTime, groupSessionsByDate } from './utils';
+import { groupSessionsByDate, formatDate, formatTime } from '../utils';
+import { useInterviewSession } from '../hooks/useInterviewSession';
 
 type PastSession = {
     id: string;
@@ -26,10 +27,8 @@ type GroupedSessions = {
 
 export function SideNav({ onOpenChange }: SideNavProps) {
     const [isExpanded, setIsExpanded] = useState(false);
-    const [pastSessions, setPastSessions] = useState<PastSession[]>([]);
+    const { sessionData, isLoading, deleteSession } = useInterviewSession();
     const [groupedSessions, setGroupedSessions] = useState<GroupedSessions>({});
-    const [isLoading, setIsLoading] = useState(false);
-    const [isDeleting, setIsDeleting] = useState(false);
     const router = useRouter();
     const pathname = usePathname();
 
@@ -37,26 +36,11 @@ export function SideNav({ onOpenChange }: SideNavProps) {
         onOpenChange?.(isExpanded);
     }, [isExpanded, onOpenChange]);
 
-    // Fetch past sessions when component mounts
     useEffect(() => {
-        const fetchPastSessions = async () => {
-            setIsLoading(true);
-            try {
-                const res = await fetch('/api/interview-sessions');
-                if (res.ok) {
-                    const data = await res.json();
-                    setPastSessions(data);
-                    groupSessionsByDate(data, setGroupedSessions);
-                }
-            } catch (error) {
-                console.error('Failed to fetch past sessions:', error);
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
-        fetchPastSessions();
-    }, []);
+        if (sessionData) {
+            groupSessionsByDate(sessionData, setGroupedSessions);
+        }
+    }, [sessionData]);
 
     // Determine if the current path is for a specific session
     const isSessionActive = (sessionId: string) => {
@@ -67,35 +51,13 @@ export function SideNav({ onOpenChange }: SideNavProps) {
     const handleDeleteInterview = async (sessionToDelete: string) => {
         if (!sessionToDelete) return;
 
-        setIsDeleting(true);
         try {
-            const res = await fetch(`/api/interview-sessions`, {
-                method: 'DELETE',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ sessionId: sessionToDelete }),
-            });
-
-            if (!res.ok) {
-                throw new Error('Failed to delete session');
-            }
-
-            // Update the list by removing the deleted session
-            setPastSessions(prev => prev.filter(session => session.id !== sessionToDelete));
-
-            // Re-group the sessions
-            groupSessionsByDate(pastSessions.filter(session => session.id !== sessionToDelete), setGroupedSessions);
-
+            await deleteSession(sessionToDelete);
             toast.success('Interview deleted successfully');
-
-            router.push('/interview-prep')
-
+            router.push('/interview-prep');
         } catch (error) {
             console.error('Error deleting session:', error);
             toast.error('Failed to delete interview session');
-        } finally {
-            setIsDeleting(false);
         }
     };
 
@@ -127,16 +89,16 @@ export function SideNav({ onOpenChange }: SideNavProps) {
                             className="w-8 h-8 rounded-md bg-gray-100 flex items-center justify-center hover:cursor-pointer group"
                             onClick={() => setIsExpanded(true)}
                         >
-                                <div className="relative">
-                                    <PanelLeft className="h-5 w-5 text-gray-500 dark:text-gray-300 group-hover:opacity-0 transition-opacity" />
-                                    <ArrowRightToLine className="h-5 w-5 text-gray-500 dark:text-gray-300 absolute top-0 left-0 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                </div>
-                            </Button>
+                            <div className="relative">
+                                <PanelLeft className="h-5 w-5 text-gray-500 dark:text-gray-300 group-hover:opacity-0 transition-opacity" />
+                                <ArrowRightToLine className="h-5 w-5 text-gray-500 dark:text-gray-300 absolute top-0 left-0 opacity-0 group-hover:opacity-100 transition-opacity" />
+                            </div>
+                        </Button>
                     )}
                 </div>
             </div>
             {/* Nav actions */}
-            <div className="p-3">
+            <div className="p-3" >
                 <Button
                     variant="outline"
                     className={cn(
@@ -151,15 +113,15 @@ export function SideNav({ onOpenChange }: SideNavProps) {
             </div>
 
             {/* Nav content */}
-            <div className="flex-1 overflow-y-auto">
-                {isLoading || isDeleting ? (
+            <div className="flex-1 overflow-y-auto custom-scrollbar">
+                {isLoading ? (
                     <div className={cn(
                         "p-4 text-sm text-gray-500",
                         !isExpanded && "text-center"
                     )}>
                         {isExpanded ? "Loading..." : "..."}
                     </div>
-                ) : pastSessions.length > 0 && isExpanded ? (
+                ) : sessionData && sessionData.length > 0 && isExpanded ? (
                     <div className="py-2">
                         {Object.entries(groupedSessions).map(([group, sessions]) => (
                             sessions.length > 0 && (
@@ -209,7 +171,7 @@ export function SideNav({ onOpenChange }: SideNavProps) {
                                 </div>
                             )
                         ))}
-                        </div>
+                    </div>
                 ) : null}
             </div>
         </motion.div>

@@ -1,25 +1,37 @@
+import { DefaultSession } from 'next-auth'
+
+declare module 'next-auth' {
+  interface Session extends DefaultSession {
+    user: {
+      id: string
+      name?: string | null
+      email?: string | null
+      image?: string | null
+    }
+  }
+}
+
 export interface Question {
   id: string
   text: string
-  rationale?: string
-  interviewId: string
   userAnswer: string
-  feedback?: string
+  feedback: string
   showFeedback: boolean
   isAnswered: boolean
   isSubmitting: boolean
+  answerId?: string
+  interviewId: string
+}
+export interface SessionData {
+  id: string
+  role: string
+  questions: Question[]
+  status: 'active' | 'completed' | 'archived'
+  createdAt: string
 }
 
-export interface User {
+export type PastSession = {
   id: string
-  name?: string | null
-  email?: string | null
-  image?: string | null
-  session: Session
-}
-
-export interface Session {
-  user?: User
-  expires: string
-  id: string
+  role: string
+  createdAt: string
 }

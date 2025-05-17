@@ -1,6 +1,8 @@
-import { useState } from 'react'
 import { toast } from 'sonner'
 import { Question } from '../types'
+import useSWR from 'swr'
+import { useRouter } from 'next/navigation'
+import { useState } from 'react'
 
 export type InterviewFormState = {
   role: string
@@ -10,7 +12,9 @@ export type InterviewFormState = {
 }
 
 export function useInterviewForm() {
-  // Form state
+  const router = useRouter()
+
+  // Form state (local state is fine for form inputs)
   const [formState, setFormState] = useState<InterviewFormState>({
     role: '',
     resume: '',
@@ -22,12 +26,14 @@ export function useInterviewForm() {
   const [isGenerating, setIsGenerating] = useState(false)
   const [isParsing, setIsParsing] = useState(false)
 
-  // Results state
-  const [questions, setQuestions] = useState<Question[]>([])
-  const [currentInterviewId, setCurrentInterviewId] = useState<string | null>(
-    null
-  )
+  // Current step state
   const [currentStep, setCurrentStep] = useState<'setup' | 'questions'>('setup')
+
+  // SWR for questions data
+  const { data: questionsData, mutate: mutateQuestions } = useSWR<Question[]>(
+    null, // Initially null until we generate questions
+    { revalidateOnFocus: false }
+  )
 
   // Form field updaters
   const updateField = <K extends keyof InterviewFormState>(
@@ -93,19 +99,13 @@ export function useInterviewForm() {
       }
 
       const data = await res.json()
+      const interviewId = data[0]?.interviewId
 
-      if (data.length > 0 && data[0].interviewId) {
-        setCurrentInterviewId(data[0].interviewId)
-        // router.push(`/interview/${data[0].interviewId}`)
-        // update the URL to include the interview ID
-        window.history.pushState(
-          {},
-          '',
-          `/interview-prep/${data[0].interviewId}`
-        )
+      if (interviewId) {
+        // Update the URL
+        router.push(`/interview-prep/${interviewId}`)
       }
 
-      setQuestions(data)
       setCurrentStep('questions')
     } catch (err) {
       console.error('Error generating questions:', err)
@@ -124,17 +124,15 @@ export function useInterviewForm() {
       file: null,
       fileName: '',
     })
-    setQuestions([])
-    setCurrentInterviewId(null)
+    mutateQuestions([], false)
     setCurrentStep('setup')
   }
 
   return {
     formState,
     updateField,
-    questions,
-    setQuestions,
-    currentInterviewId,
+    questions: questionsData || [],
+    currentInterviewId: questionsData?.[0]?.interviewId || null,
     currentStep,
     isGenerating,
     isParsing,

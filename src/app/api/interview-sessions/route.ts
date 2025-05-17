@@ -1,3 +1,4 @@
+// app/api/interview-session/route.ts
 import { prisma } from '@/lib/prisma'
 import { getServerSession } from 'next-auth'
 import { NextResponse } from 'next/server'
@@ -6,31 +7,28 @@ import { authOptions } from '../auth/[...nextauth]/route'
 export async function GET() {
   const session = await getServerSession(authOptions)
 
-  // Check if user is authenticated
-  if (!session || !session.user?.email) {
+  if (!session?.user?.id) {
+    // Check for id instead of email
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
   try {
-    // Fetch interview sessions for the current user
     const interviews = await prisma.interviewSession.findMany({
       where: {
-        user: {
-          email: session.user.email,
-        },
+        userId: session.user.id, // Query by userId instead of email
       },
       orderBy: {
         createdAt: 'desc',
       },
     })
-    // Format the response i want the sessionid, role, and createdAt
-    const formattedInterviews = interviews.map((interview) => ({
-      id: interview.id,
-      role: interview.jobRole,
-      createdAt: interview.createdAt,
-    }))
 
-    return NextResponse.json(formattedInterviews)
+    return NextResponse.json(
+      interviews.map((interview) => ({
+        id: interview.id,
+        role: interview.jobRole,
+        createdAt: interview.createdAt,
+      }))
+    )
   } catch (error) {
     console.error('Failed to fetch interview sessions:', error)
     return NextResponse.json(
@@ -44,8 +42,7 @@ export async function DELETE(req: Request) {
   try {
     const session = await getServerSession(authOptions)
 
-    // Check if user is authenticated
-    if (!session || !session.user?.email) {
+    if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -55,14 +52,8 @@ export async function DELETE(req: Request) {
       return NextResponse.json({ error: 'Missing sessionId' }, { status: 400 })
     }
 
-    // Find the interview to verify it belongs to the current user
     const interview = await prisma.interviewSession.findUnique({
-      where: {
-        id: sessionId,
-      },
-      select: {
-        userId: true,
-      },
+      where: { id: sessionId },
     })
 
     if (!interview) {
@@ -72,25 +63,19 @@ export async function DELETE(req: Request) {
       )
     }
 
-    // Ensure the interview belongs to the current user
-    if (interview.userId !== (session.user as { id?: string }).id) {
+    if (interview.userId !== session.user.id) {
       return NextResponse.json(
-        {
-          error:
-            "Unauthorized - You don't have permission to delete this interview",
-        },
+        { error: "Unauthorized - You don't have permission" },
         { status: 403 }
       )
     }
 
     const deletedInterview = await prisma.interviewSession.delete({
-      where: {
-        id: sessionId,
-      },
+      where: { id: sessionId },
     })
 
     return NextResponse.json({
-      message: 'Interview session and all related data successfully deleted',
+      message: 'Interview session deleted successfully',
       deletedInterviewId: deletedInterview.id,
     })
   } catch (error) {

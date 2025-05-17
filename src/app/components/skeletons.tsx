@@ -10,7 +10,7 @@ export function LoadingSpinner({ size = 4 }: { size?: number }) {
 
 export function SetupFormSkeleton() {
     return (
-        <div className="max-w-2xl mx-auto space-y-6">
+        <div className="mx-auto w-full">
             <div className="space-y-3">
                 <Skeleton className="h-5 w-1/4 bg-gray-200 dark:bg-gray-700" />
                 <Skeleton className="h-10 w-full bg-gray-100 dark:bg-gray-700" />
@@ -28,7 +28,7 @@ export function SetupFormSkeleton() {
 
 export function QuestionSkeleton() {
     return (
-        <div className="p-6 bg-white dark:bg-gray-800 rounded-lg shadow-sm space-y-4">
+        <div className="p-6 bg-white dark:bg-gray-800 rounded-lg shadow-sm space-y-4 w-full mx-auto">
             <Skeleton className="h-6 w-3/4 bg-gray-200 dark:bg-gray-700" />
             <Skeleton className="h-4 w-full bg-gray-100 dark:bg-gray-700" />
             <Skeleton className="h-24 w-full bg-gray-100 dark:bg-gray-700" />
@@ -55,7 +55,7 @@ export function SideNavSkeleton() {
 
 export function HistorySkeleton() {
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 w-full mx-auto">
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 space-y-3">
                 <Skeleton className="h-8 w-3/4 bg-gray-200 dark:bg-gray-700" />
                 <Skeleton className="h-4 w-1/2 bg-gray-100 dark:bg-gray-700" />

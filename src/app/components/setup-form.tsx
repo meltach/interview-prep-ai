@@ -50,7 +50,7 @@ export function SetupForm({
             : "";
 
     return (
-        <Card className="mb-6">
+        <Card className="w-full mx-auto">
             <CardHeader>
                 <CardTitle className="text-xl">Let&#39;s prepare for your interview</CardTitle>
             </CardHeader>
@@ -124,27 +124,27 @@ export function SetupForm({
                         }}
                         onMouseLeave={() => setShowTooltip(false)}
                     >
-                    <Button
+                        <Button
                             className="w-full bg-blue-600 hover:bg-blue-700 transition-colors relative"
-                        onClick={generateQuestions}
+                            onClick={generateQuestions}
                             disabled={isButtonDisabled}
                         >
-                        {isLoading ? (
-                            <div className="flex items-center gap-2">
-                                <LoadingSpinner size={4} />
-                                <span>
-                                    {isParsing ? "Processing file..." : "Generating questions..."}
-                                </span>
-                            </div>
-                        ) : (
-                            'Generate Interview Questions'
-                        )}
+                            {isLoading ? (
+                                <div className="flex items-center gap-2">
+                                    <LoadingSpinner size={4} />
+                                    <span>
+                                        {isParsing ? "Processing file..." : "Generating questions..."}
+                                    </span>
+                                </div>
+                            ) : (
+                                'Generate Interview Questions'
+                            )}
                             {isButtonDisabled && tooltipMessage && showTooltip && (
                                 <span className="absolute left-1/2 -translate-x-1/2 -top-10 bg-gray-800 text-white text-xs rounded px-3 py-1 shadow-lg z-10 whitespace-nowrap">
                                     {tooltipMessage}
                                 </span>
                             )}
-                    </Button>
+                        </Button>
                     </div>
                 </div>
             </CardContent>

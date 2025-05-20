@@ -16,13 +16,13 @@ export function useInterviewSession() {
     }
   )
 
-  const deleteSession = async (sessionId: string) => {
+  const deleteSession = async (interviewId: string) => {
     const response = await fetch(`/api/interview-sessions`, {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ sessionId }),
+      body: JSON.stringify({ interviewId }),
     })
 
     if (!response.ok) {

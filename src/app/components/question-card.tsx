@@ -1,176 +1,271 @@
-'use client';
 
-import { ChevronDown, ChevronUp, Send } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { useState, useEffect } from 'react';
+import { ChevronDown, ChevronUp, Send, Edit, X } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
+import {
+    Card,
+    CardContent,
+    CardHeader,
+    CardTitle,
+    CardFooter
+} from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import {
     Collapsible,
     CollapsibleContent,
     CollapsibleTrigger
 } from '@/components/ui/collapsible';
-import { useState, useEffect } from 'react';
-import './style.css';
+import { useInterview } from '../context/InterviewContext';
 import { Question } from '../types';
+import { Badge } from '@/components/ui/badge';
+// import { Badge } from '@/components/ui/badge';
 
-function cleanQuestionText(text: string) {
-    return text
-        .replace(/"/g, '')     // Remove all double quotes
-        .replace(/^>\s*/, '')  // Remove leading '>' and any spaces after it
-}
-
-interface QuestionCardProps {
-    question: Question;
-    handleAnswerChange?: (id: string, value: string) => void;
-    submitAnswer?: (id: string) => void;
-    toggleFeedback: (id: string) => void;
-    readOnly?: boolean;
-}
-
-export function QuestionCard({
-    question,
-    handleAnswerChange,
-    submitAnswer,
-    toggleFeedback,
-    readOnly = false
-}: QuestionCardProps) {
-    const [streamedFeedback, setStreamedFeedback] = useState('');
+// Custom hook for text streaming animation
+function useTextAnimation(text: string, speed = 10) {
+    const [streamedText, setStreamedText] = useState('');
     const [isStreaming, setIsStreaming] = useState(false);
-    const [isEditing, setIsEditing] = useState(false);
-    console.log('isReadOnly', readOnly);
 
     useEffect(() => {
-        if (question.showFeedback && question.feedback && !readOnly) {
-            setIsStreaming(true);
-            setStreamedFeedback('');
+        if (!text) return;
 
-            let currentIndex = 0;
-            const feedbackText = question.feedback || '';
+        setIsStreaming(true);
+        setStreamedText('');
 
-            const streamInterval = setInterval(() => {
-                if (currentIndex < feedbackText.length) {
-                    // Stream 1-3 characters at a time for natural effect
-                    const charsToAdd = Math.floor(Math.random() * 3) + 1;
-                    currentIndex = Math.min(currentIndex + charsToAdd, feedbackText.length);
-                    setStreamedFeedback(feedbackText.substring(0, currentIndex));
-                } else {
-                    clearInterval(streamInterval);
-                    setIsStreaming(false);
-                }
-            }, 10); // Adjust timing for desired speed
+        let currentIndex = 0;
 
-            return () => clearInterval(streamInterval);
-        }
-    }, [question.showFeedback, question.feedback, readOnly]);
+        const streamInterval = setInterval(() => {
+            if (currentIndex < text.length) {
+                const charsToAdd = Math.floor(Math.random() * 3) + 1;
+                currentIndex = Math.min(currentIndex + charsToAdd, text.length);
+                setStreamedText(text.substring(0, currentIndex));
+            } else {
+                clearInterval(streamInterval);
+                setIsStreaming(false);
+            }
+        }, speed);
 
-    const handleLocalAnswerChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-        if (handleAnswerChange) {
-            handleAnswerChange(question.id, e.target.value);
-        }
-    };
+        return () => clearInterval(streamInterval);
+    }, [text, speed]);
 
-    const canSubmit = question.userAnswer?.trim() && !question.isSubmitting;
-    const showSubmitButton = (!question.isAnswered || isEditing)
-    const isDisabled = question.isAnswered && !isEditing;
+    return { streamedText, isStreaming };
+}
 
+// Separated components for cleaner organization
+function QuestionPrompt({ text }: { text: string }) {
+    // Clean question text by removing quotes and leading '>'
+    const cleanText = text
+        .replace(/"/g, '')
+        .replace(/^>\s*/, '');
 
     return (
-        <Card className="w-full mx-auto">
-            {/* Question */}
-            <CardHeader className="pb-3">
-                <CardTitle className="text-lg">Question</CardTitle>
-                <div className='markdown-preview'>
-                    <ReactMarkdown>
-                        {cleanQuestionText(question.text)}
-                    </ReactMarkdown>
-                </div>
-            </CardHeader>
+        <div className="markdown-preview rounded-md">
+            <ReactMarkdown>{cleanText}</ReactMarkdown>
+        </div>
+    );
+}
 
-            {/* Answer Section */}
-            <CardContent>
-                {readOnly && (
-                    <h4 className="text-sm font-semibold text-gray-700 mb-2">
-                        {question.isAnswered ? 'Your Answer' : 'Practice Answer'}
-                    </h4>
+type AnswerInputProps = {
+    value: string;
+    onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
+    disabled: boolean;
+    isSubmitting: boolean;
+    onSubmit: () => void;
+    canSubmit: boolean;
+    isEditing: boolean;
+    toggleEdit: () => void;
+};
+
+function AnswerInput({
+    value,
+    onChange,
+    disabled,
+    isSubmitting,
+    onSubmit,
+    canSubmit,
+    isEditing,
+    toggleEdit
+}: AnswerInputProps) {
+    return (
+        <div className="space-y-2">
+            <div className="flex justify-between items-center">
+                <h4 className="text-sm font-semibold text-gray-700">
+                    Your Answer
+                </h4>
+                {disabled && !isEditing && (
+                    <Badge variant="outline" className="text-xs">
+                        Submitted
+                    </Badge>
                 )}
+            </div>
 
-                <Textarea
-                    placeholder="Type your answer here..."
-                    className={`min-h-32 mb-4 ${isDisabled ? 'bg-gray-50' : 'bg-white'}`}
-                    value={question.userAnswer || ''}
-                    onChange={handleLocalAnswerChange}
-                    disabled={isDisabled && !isEditing}
-                />
+            <Textarea
+                placeholder="Type your answer here..."
+                className={`min-h-32 ${disabled && !isEditing ? 'bg-gray-50' : 'bg-white'}`}
+                value={value || ''}
+                onChange={onChange}
+                disabled={disabled && !isEditing}
+                aria-label="Your answer"
+            />
 
-                {showSubmitButton && (
-                    <div className="flex gap-2">
+            {((!disabled || isEditing)) && (
+                <div className="flex gap-2">
+                    <Button
+                        onClick={onSubmit}
+                        disabled={!canSubmit}
+                        className="transition-all duration-200"
+                    >
+                        {isSubmitting ? (
+                            <>
+                                <div className="animate-spin mr-2 h-4 w-4 border-2 border-t-transparent rounded-full" />
+                                Analyzing...
+                            </>
+                        ) : (
+                            <>
+                                <Send className="mr-2 h-4 w-4" />
+                                Submit Answer
+                            </>
+                        )}
+                    </Button>
+
+                    {disabled && (
                         <Button
-                            onClick={() => submitAnswer && submitAnswer(question.id)}
-                            disabled={!canSubmit}
+                            variant="outline"
+                            onClick={toggleEdit}
+                            className="transition-all duration-200"
                         >
-                            {question.isSubmitting ? (
+                            {isEditing ? (
                                 <>
-                                    <div className="animate-spin mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
-                                    Analyzing...
+                                    <X className="mr-2 h-4 w-4" />
+                                    Cancel
                                 </>
                             ) : (
                                 <>
-                                    <Send className="mr-2 h-4 w-4" />
-                                    Submit Answer
+                                    <Edit className="mr-2 h-4 w-4" />
+                                    Edit Answer
                                 </>
                             )}
                         </Button>
-                        {question.isAnswered && (
-                            <Button
-                                variant="outline"
-                                onClick={() => setIsEditing(!isEditing)}
-                            >
-                                {isEditing ? 'Cancel' : 'Edit Answer'}
-                            </Button>
-                        )}
+                    )}
+                </div>
+            )}
+        </div>
+    );
+}
+
+type FeedbackSectionProps = {
+    feedback: string;
+    isOpen: boolean;
+    onToggle: () => void;
+    isReadOnly: boolean;
+};
+
+function FeedbackSection({ feedback, isOpen, onToggle, isReadOnly }: FeedbackSectionProps) {
+    const { streamedText, isStreaming } = useTextAnimation(feedback);
+
+    return (
+        <Collapsible open={isOpen} onOpenChange={onToggle}>
+            <CollapsibleTrigger asChild>
+                <Button
+                    variant="secondary"
+                    className="w-full justify-between mt-4"
+                >
+                    <span>Feedback</span>
+                    {isOpen ? (
+                        <ChevronUp className="h-5 w-5" />
+                    ) : (
+                        <ChevronDown className="h-5 w-5" />
+                    )}
+                </Button>
+            </CollapsibleTrigger>
+
+            <CollapsibleContent>
+                <div className="mt-4 pt-4">
+                    <Separator className="mb-4" />
+                    <h4 className="text-sm font-semibold text-gray-700 mb-2">AI Feedback</h4>
+                    <div className="p-4 bg-slate-50 rounded-lg text-gray-700 text-sm leading-relaxed space-y-2">
+                        <div className="markdown-preview">
+                            <ReactMarkdown>
+                                {isReadOnly
+                                    ? feedback || ''
+                                    : streamedText + (isStreaming ? ' ▋' : '')
+                                }
+                            </ReactMarkdown>
+                        </div>
                     </div>
-                )}
+                </div>
+            </CollapsibleContent>
+        </Collapsible>
+    );
+}
 
-                {question.isAnswered && !isEditing && (
-                    <Collapsible
-                        open={question.showFeedback}
-                        onOpenChange={() => toggleFeedback(question.id)}
-                    >
-                        <CollapsibleTrigger asChild>
-                            <Button
-                                variant="secondary"
-                                className="w-full justify-between mt-4"
-                            >
-                                <span>Feedback</span>
-                                {question.showFeedback ? (
-                                    <ChevronUp className="h-5 w-5" />
-                                ) : (
-                                    <ChevronDown className="h-5 w-5" />
-                                )}
-                            </Button>
-                        </CollapsibleTrigger>
+// Main QuestionCard component
+export default function QuestionCard({ question, readOnly }:
+    {
+        question: Question;
+        readOnly: boolean;
+    }
+) {
+    const {
+        handleAnswerChange,
+        submitAnswer,
+        toggleFeedback,
+    } = useInterview();
 
-                        <CollapsibleContent>
-                            <div className="mt-4 pt-4">
-                                <Separator className="mb-4" />
-                                <h4 className="text-sm font-semibold text-gray-700 mb-2">AI Feedback</h4>
-                                <div className="p-4 bg-slate-50 rounded-lg text-gray-700 text-sm leading-relaxed space-y-2">
-                                    <div className='markdown-preview'>
-                                        <ReactMarkdown>
-                                            {readOnly
-                                                ? question.feedback ?? ''
-                                                : streamedFeedback + (isStreaming ? ' ▋' : '')
-                                            }
-                                        </ReactMarkdown>
-                                    </div>
-                                </div>
-                            </div>
-                        </CollapsibleContent>
-                    </Collapsible>
-                )}
+    const [isEditing, setIsEditing] = useState(false);
+
+    const handleLocalAnswerChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+        handleAnswerChange(question.id, e.target.value);
+    };
+
+    const handleSubmit = () => {
+        submitAnswer(question.id);
+        setIsEditing(false);
+    };
+
+    const toggleEdit = () => setIsEditing(!isEditing);
+
+    const canSubmit = question.userAnswer?.trim() && !question.isSubmitting;
+    const isDisabled = question.isAnswered && !isEditing;
+
+    return (
+        <Card className="w-full mx-auto shadow-sm transition-all duration-300 hover:shadow-md">
+            <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center gap-2">
+                    Question
+                    {question.isAnswered && (
+                        <Badge variant="secondary" className="text-xs">
+                            Answered
+                        </Badge>
+                    )}
+                </CardTitle>
+                <QuestionPrompt text={question.text} />
+            </CardHeader>
+
+            <CardContent>
+                <AnswerInput
+                    value={question.userAnswer || ''}
+                    onChange={handleLocalAnswerChange}
+                    disabled={isDisabled}
+                    isSubmitting={question.isSubmitting || false}
+                    onSubmit={handleSubmit}
+                    canSubmit={canSubmit || false}
+                    isEditing={isEditing}
+                    toggleEdit={toggleEdit}
+                />
             </CardContent>
+
+            {question.isAnswered && !isEditing && (
+                <CardFooter className="flex-col">
+                    <FeedbackSection
+                        feedback={question.feedback || ''}
+                        isOpen={question.showFeedback || false}
+                        onToggle={() => toggleFeedback(question.id)}
+                        isReadOnly={readOnly}
+                    />
+                </CardFooter>
+            )}
         </Card>
     );
 }

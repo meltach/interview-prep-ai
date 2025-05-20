@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/app/api/auth/[...nextauth]/route'
 import { prisma } from '@/lib/prisma'
-import { generateInterviewQuestions, parseQuestions } from '../services'
 import pdf from 'pdf-parse'
+import { generateInterviewQuestions } from '../services'
 
 // Define allowed MIME types
 const ALLOWED_FILE_TYPES = [
@@ -18,14 +18,21 @@ const MAX_FILE_SIZE = 5 * 1024 * 1024
 
 export async function POST(req: NextRequest) {
   try {
-    // Auth check
-    const session = await getServerSession(authOptions)
+    // Auth check - run this in parallel with form parsing to save time
+    const sessionPromise = getServerSession(authOptions)
+    const formDataPromise = req.formData()
+
+    // Wait for both promises to resolve
+    const [session, formData] = await Promise.all([
+      sessionPromise,
+      formDataPromise,
+    ])
+
     if (!session?.user?.email) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Parse FormData
-    const formData = await req.formData()
+    // Extract form data
     const role = formData.get('role') as string
     const resumeText = formData.get('resumeText') as string | null
     const resumeFile = formData.get('resumeFile') as File | null
@@ -39,6 +46,12 @@ export async function POST(req: NextRequest) {
     }
 
     let finalResumeText = resumeText || ''
+    let textExtractionPromise = Promise.resolve(finalResumeText)
+
+    // Start user lookup early - we'll need it regardless of file processing
+    const userPromise = prisma.user.findUnique({
+      where: { email: session.user.email },
+    })
 
     // Handle file upload if provided
     if (resumeFile) {
@@ -63,27 +76,32 @@ export async function POST(req: NextRequest) {
       }
 
       // Extract text based on file type
-      try {
-        if (resumeFile.type === 'application/pdf') {
-          const arrayBuffer = await resumeFile.arrayBuffer()
-          const pdfData = await pdf(Buffer.from(arrayBuffer))
-          finalResumeText = pdfData.text
-        } else {
-          // For text-based files (DOCX, TXT)
-          finalResumeText = await resumeFile.text()
+      textExtractionPromise = (async () => {
+        try {
+          if (resumeFile.type === 'application/pdf') {
+            const arrayBuffer = await resumeFile.arrayBuffer()
+            const pdfData = await pdf(Buffer.from(arrayBuffer))
+            return pdfData.text
+          } else {
+            // For text-based files (DOCX, TXT)
+            return await resumeFile.text()
+          }
+        } catch (error) {
+          console.error('[File Processing Error]', error)
+          throw new Error('Failed to process the uploaded file')
         }
-      } catch (error) {
-        console.error('[File Processing Error]', error)
-        return NextResponse.json(
-          {
-            error: 'Failed to process the uploaded file',
-          },
-          { status: 422 }
-        )
-      }
+      })()
     }
 
-    // Ensure we have resume content from either source
+    // Wait for text extraction and user lookup to complete
+    const [extractedText, user] = await Promise.all([
+      textExtractionPromise,
+      userPromise,
+    ])
+
+    finalResumeText = extractedText
+
+    // Ensure we have resume content
     if (!finalResumeText?.trim()) {
       return NextResponse.json(
         {
@@ -93,16 +111,13 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Get user
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-    })
-
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
-    // Create interview session
+    // Generate questions in parallel with creating the interview session
+    const questionsPromise = generateInterviewQuestions(finalResumeText, role)
+
     const interviewSession = await prisma.interviewSession.create({
       data: {
         userId: user.id,
@@ -111,43 +126,10 @@ export async function POST(req: NextRequest) {
       },
     })
 
-
-    // Generate and parse questions
+    // Wait for questions to be generated
+    let questions
     try {
-      const rawQuestions = await generateInterviewQuestions(
-        finalResumeText,
-        role
-      )
-      const parsedQuestions = parseQuestions(rawQuestions)
-
-      // Save questions to database
-      const savedQuestions = await Promise.all(
-        parsedQuestions.map((question, index) =>
-          prisma.question.create({
-            data: {
-              interviewId: interviewSession.id,
-              text: question.text,
-              rationale: question.rationale,
-              order: index + 1,
-            },
-          })
-        )
-      )
-
-      // Format response
-      const responseData = savedQuestions.map((q) => ({
-        id: q.id,
-        text: q.text,
-        rationale: q.rationale,
-        userAnswer: '',
-        feedback: '',
-        showFeedback: false,
-        isAnswered: false,
-        isSubmitting: false,
-        interviewId: interviewSession.id,
-      }))
-
-      return NextResponse.json(responseData)
+      questions = await questionsPromise
     } catch (error) {
       console.error('[AI Processing Error]', error)
 
@@ -163,6 +145,35 @@ export async function POST(req: NextRequest) {
         { status: 500 }
       )
     }
+
+    // Use a transaction for bulk question creation
+    const savedQuestions = await prisma.$transaction(
+      questions.map((question, index) =>
+        prisma.question.create({
+          data: {
+            interviewId: interviewSession.id,
+            text: question,
+            order: index + 1,
+            // rationale: question.rationale,
+          },
+        })
+      )
+    )
+
+    // Format response
+    const responseData = savedQuestions.map((q) => ({
+      id: q.id,
+      text: q.text,
+      rationale: q.rationale,
+      userAnswer: '',
+      feedback: '',
+      showFeedback: false,
+      isAnswered: false,
+      isSubmitting: false,
+      interviewId: interviewSession.id,
+    }))
+
+    return NextResponse.json(responseData)
   } catch (err) {
     console.error('[API Error]', err)
     return NextResponse.json(

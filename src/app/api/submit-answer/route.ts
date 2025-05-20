@@ -7,20 +7,18 @@ import { generateAnswerFeedback } from '../services'
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions)
 
-  if (!session?.user?.email) {
+  if (!session?.user?.email || !session?.user?.id) {
     return new NextResponse('Unauthorized', { status: 401 })
   }
 
-  const { question, answer, questionId } = await req.json()
+  const { answer, questionId } = await req.json()
 
-  if (!question || !answer || !questionId) {
-    return new NextResponse('Missing question, answer, or questionId', {
-      status: 400,
-    })
+  if (!questionId || !answer) {
+    return new NextResponse('Missing question or answer', { status: 400 })
   }
 
   try {
-    // Find the question in the database
+    // Find the question and associated interview
     const dbQuestion = await prisma.question.findUnique({
       where: { id: questionId },
       include: { interview: true },
@@ -30,17 +28,20 @@ export async function POST(req: NextRequest) {
       return new NextResponse('Question not found', { status: 404 })
     }
 
-    // Verify user owns this interview
-    if (dbQuestion.interview.userId !== (session.user as { id?: string }).id) {
+    // Ensure the current user owns the interview
+    if (dbQuestion.interview.userId !== session.user.id) {
       return new NextResponse('Unauthorized access to this question', {
         status: 403,
       })
     }
 
-    // Generate feedback with AI service
-    const feedbackContent = await generateAnswerFeedback(question, answer)
+    // Generate feedback using AI service
+    const feedbackContent = await generateAnswerFeedback(
+      dbQuestion.text,
+      answer
+    )
 
-    // Create or update the answer and feedback in the database
+    // Upsert the answer and feedback
     const savedAnswer = await prisma.answer.upsert({
       where: { questionId },
       create: {
@@ -56,13 +57,8 @@ export async function POST(req: NextRequest) {
         text: answer,
         feedback: {
           upsert: {
-            create: {
-              content: feedbackContent,
-            },
-            update: {
-              content: feedbackContent,
-              updatedAt: new Date(),
-            },
+            create: { content: feedbackContent },
+            update: { content: feedbackContent, updatedAt: new Date() },
           },
         },
       },
@@ -71,12 +67,28 @@ export async function POST(req: NextRequest) {
       },
     })
 
+    // Check if all questions in the interview are now answered
+    const interviewId = dbQuestion.interviewId
+
+    const [totalQuestions, answeredQuestions] = await Promise.all([
+      prisma.question.count({ where: { interviewId } }),
+      prisma.answer.count({ where: { question: { interviewId } } }),
+    ])
+
+    // If all questions are answered, mark the interview as completed
+    if (totalQuestions > 0 && totalQuestions === answeredQuestions) {
+      await prisma.interviewSession.update({
+        where: { id: interviewId },
+        data: { status: 'completed' },
+      })
+    }
+
     return NextResponse.json({
       feedback: savedAnswer.feedback?.content || feedbackContent,
       answerId: savedAnswer.id,
     })
   } catch (err) {
-    console.error('[API Error]', err)
+    console.error('[Submit Answer API Error]', err)
     return new NextResponse('Failed to process answer and feedback', {
       status: 500,
     })

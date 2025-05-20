@@ -4,22 +4,21 @@ import { authOptions } from '@/app/api/auth/[...nextauth]/route'
 import { prisma } from '@/lib/prisma'
 
 export async function GET(
-  req: NextRequest,
-  { params }: { params: { sessionId: string } }
+  request: NextRequest,
+  { params }: { params: { interviewId: string } }
 ) {
   const session = await getServerSession(authOptions)
-  console.log('SESSION:', session)
+
   // Use session.user.id directly (JWT provides this)
   if (!session?.user?.id) {
     return new NextResponse('Unauthorized', { status: 401 })
   }
-  console.log('Session ID:', session.user.id)
 
   try {
-    const { sessionId } = await params
+    const { interviewId } = await params
     const interviewSession = await prisma.interviewSession.findUnique({
       where: {
-        id: sessionId,
+        id: interviewId,
         userId: session.user.id, // Direct ownership check in query
       },
       include: {

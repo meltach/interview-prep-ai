@@ -27,7 +27,7 @@ type GroupedSessions = {
 
 export function SideNav({ onOpenChange }: SideNavProps) {
     const [isExpanded, setIsExpanded] = useState(false);
-    const { sessionData, isLoading, deleteSession } = useInterviewSession();
+    const { sessionData = [], isLoading, deleteSession } = useInterviewSession();
     const [groupedSessions, setGroupedSessions] = useState<GroupedSessions>({});
     const router = useRouter();
     const pathname = usePathname();
@@ -37,14 +37,14 @@ export function SideNav({ onOpenChange }: SideNavProps) {
     }, [isExpanded, onOpenChange]);
 
     useEffect(() => {
-        if (sessionData) {
+        if (sessionData.length > 0) {
             groupSessionsByDate(sessionData, setGroupedSessions);
         }
     }, [sessionData]);
 
     // Determine if the current path is for a specific session
-    const isSessionActive = (sessionId: string) => {
-        return pathname === `/interview-prep/${sessionId}`;
+    const isSessionActive = (interviewId: string) => {
+        return pathname === `/interview-prep/${interviewId}`;
     };
 
     // Delete interview session 

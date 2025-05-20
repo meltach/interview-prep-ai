@@ -1,4 +1,3 @@
-// app/api/interview-session/route.ts
 import { prisma } from '@/lib/prisma'
 import { getServerSession } from 'next-auth'
 import { NextResponse } from 'next/server'
@@ -46,14 +45,17 @@ export async function DELETE(req: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { sessionId } = await req.json()
+    const { interviewId } = await req.json()
 
-    if (!sessionId) {
-      return NextResponse.json({ error: 'Missing sessionId' }, { status: 400 })
+    if (!interviewId) {
+      return NextResponse.json(
+        { error: 'Missing interviewId' },
+        { status: 400 }
+      )
     }
 
     const interview = await prisma.interviewSession.findUnique({
-      where: { id: sessionId },
+      where: { id: interviewId },
     })
 
     if (!interview) {
@@ -71,7 +73,7 @@ export async function DELETE(req: Request) {
     }
 
     const deletedInterview = await prisma.interviewSession.delete({
-      where: { id: sessionId },
+      where: { id: interviewId },
     })
 
     return NextResponse.json({

@@ -17,8 +17,6 @@ export async function middleware(request: NextRequest) {
       secureCookie: process.env.NODE_ENV === 'production',
     })
 
-    console.log('Token:', token)
-
     if (!token) {
       const signInUrl = new URL('/api/auth/signin', request.url)
       signInUrl.searchParams.set('callbackUrl', path)

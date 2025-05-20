@@ -1,33 +1,17 @@
 'use client'
 
-import { useParams } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { InterviewLayout } from '@/app/components/layouts/InterviewLayouts'
 import { QuestionsList } from '@/app/components/questions-list'
 import { HistorySkeleton } from '@/app/components/skeletons'
-import useSWR from 'swr'
-import { useQuestionInteractions } from '@/app/hooks/useQuestionInteractions'
+import { useInterview } from '@/app/context/InterviewContext'
 
-const fetcher = async (url: string) => {
-    const response = await fetch(url)
-    return await response.json()
-}
 
 export default function InterviewSessionPage() {
-    const { sessionId } = useParams()
-    const { data, isLoading, mutate } = useSWR(
-        sessionId ? `/api/history/${sessionId}` : null,
-        fetcher,
-        { revalidateOnFocus: false }
-    )
+    const { isFetchingHistory, interviewData } = useInterview()
 
-    const {
-        handleAnswerChange,
-        submitAnswer,
-        toggleFeedback
-    } = useQuestionInteractions(mutate, sessionId as string | null)
 
-    if (isLoading) {
+    if (isFetchingHistory) {
         return (
             <InterviewLayout>
                 <HistorySkeleton />
@@ -35,7 +19,7 @@ export default function InterviewSessionPage() {
         )
     }
 
-    if (!data) {
+    if (!interviewData) {
         return (
             <InterviewLayout>
                 <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 text-center w-full">
@@ -47,8 +31,8 @@ export default function InterviewSessionPage() {
         )
     }
 
-    const formattedDate = data.createdAt
-        ? new Date(data.createdAt).toLocaleDateString('en-US', {
+    const formattedDate = interviewData.createdAt
+        ? new Date(interviewData.createdAt).toLocaleDateString('en-US', {
             month: 'long',
             day: 'numeric',
             year: 'numeric',
@@ -67,24 +51,20 @@ export default function InterviewSessionPage() {
             >
                 <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 mb-6">
                     <h2 className="text-2xl font-semibold text-gray-800 dark:text-gray-100 mb-1">
-                        {data.role || 'Interview Review'}
+                        {interviewData.role || 'Interview Review'}
                     </h2>
                     {formattedDate && (
                         <p className="text-sm text-gray-500 dark:text-gray-400">
-                            {data.status === 'active'
+                            {interviewData.status === 'active'
                                 ? 'Session in progress'
                                 : `Completed on ${formattedDate}`}
                         </p>
                     )}
                 </div>
 
-                {data.questions.length > 0 ? (
+                {interviewData.questions.length > 0 ? (
                     <QuestionsList
-                        questions={data.questions}
-                        handleAnswerChange={handleAnswerChange}
-                        submitAnswer={submitAnswer}
-                        toggleFeedback={toggleFeedback}
-                        readOnly={true}
+                        readOnly={interviewData.status === 'completed'}
                     />
                 ) : (
                     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-8 text-center">

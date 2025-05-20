@@ -109,40 +109,23 @@ Create questions that:
 - Include 1 behavioral question, 1 technical question, and 1 situational/problem-solving question
 - Reference specific elements from their resume when relevant
 
-Format each as a complete question without numbering.
+**Return ONLY a valid JSON array of 3 strings, each being a complete question. No explanations, no numbering**
 `
 
   const content = await generateText(prompt)
 
-  return content
-    .split('\n')
-    .filter(Boolean)
-    .map((q) => q.replace(/^\d+\.?\s*/, '').trim())
-}
-/**
- * Generate feedback for an interview answer
- */
-export async function generateAnswerFeedback(
-  question: string,
-  answer: string
-): Promise<string> {
-  const prompt = `
-You are an experienced interview coach specializing in professional roles. A candidate was asked:
-"${question}"
-
-Their answer was:
-"${answer}"
-
-Provide concise, constructive feedback (max 150 words) that:
-1. Highlights 1-2 specific strengths in their response
-2. Identifies 1-2 specific areas for improvement
-3. Offers actionable advice to enhance their answer
-4. If relevant, suggests a brief example of how a stronger response might be phrased
-
-Use markdown formatting for clarity: **bold** for key points and \`code\` for any technical terms.
-`
-
-  return await generateText(prompt)
+  try {
+    // Remove Markdown code block fences like ```json and ```
+    const json = content.trim().replace(/^```(?:json)?\s*|\s*```$/g, '')
+    const questions = JSON.parse(json)
+    if (Array.isArray(questions)) {
+      return questions
+    }
+    throw new Error('Invalid response format')
+  } catch (e) {
+    console.error('Failed to parse questions:', e)
+    return []
+  }
 }
 
 /**
@@ -170,11 +153,45 @@ Each question should assess the candidate's actual fit for this ${role} role. In
 
   const content = await generateText(prompt)
 
-  return content
-    .split('\n')
-    .filter(Boolean)
-    .map((q) => q.replace(/^\d+\.?\s*/, '').trim())
+  try {
+    // Remove Markdown code block fences like ```json and ```
+    const json = content.trim().replace(/^```(?:json)?\s*|\s*```$/g, '')
+    const questions = JSON.parse(json)
+    if (Array.isArray(questions)) {
+      return questions
+    }
+    throw new Error('Invalid response format')
+  } catch (e) {
+    console.error('Failed to parse questions:', e)
+    return []
+  }
 }
+/**
+ * Generate feedback for an interview answer
+ */
+export async function generateAnswerFeedback(
+  question: string,
+  answer: string
+): Promise<string> {
+  const prompt = `
+You are an experienced interview coach specializing in professional roles. A candidate was asked:
+"${question}"
+
+Their answer was:
+"${answer}"
+
+Provide concise, constructive feedback (max 150 words) that:
+1. Highlights 1-2 specific strengths in their response
+2. Identifies 1-2 specific areas for improvement
+3. Offers actionable advice to enhance their answer
+4. If relevant, suggests a brief example of how a stronger response might be phrased
+
+Use markdown formatting for clarity: **bold** for key points and \`code\` for any technical terms.
+`
+
+  return await generateText(prompt)
+}
+
 
 /**
  * Parses raw questions output from AI and extracts questions with their rationales

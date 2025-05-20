@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import { Toaster } from "@/components/ui/sonner"
 
 import "./globals.css";
 import { Providers } from './providers';
@@ -28,19 +27,10 @@ export default function RootLayout({
   return (
     <html lang="en" className="scroll-smooth">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased text-gray-900 dark:text-gray-100`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased text-gray-900 dark:text-gray-100 overflow-hidden`}
       >
         <div className="min-h-screen flex flex-col bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 transition-colors duration-300">
           <Providers>{children}</Providers>
-          <Toaster
-            toastOptions={{
-              className: "bg-gray-900 text-white",
-              duration: 3000,
-              style: {
-                backgroundColor: "#1f2937",
-                color: "#ffffff",
-              },
-            }} />
         </div>
       </body>
     </html>

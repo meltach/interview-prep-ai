@@ -3,123 +3,104 @@
 import { useState } from 'react';
 import { PlusCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { QuestionCard } from './question-card';
-import { motion } from 'framer-motion';
-import { Question } from '@/app/types';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useInterview } from '@/app/context/InterviewContext';
+import QuestionCard from './question-card';
 
 interface QuestionsListProps {
-    questions: Question[];
-    handleAnswerChange: (id: string, value: string) => void;
-    submitAnswer: (id: string) => void;
-    toggleFeedback: (id: string) => void;
     readOnly?: boolean;
-    interviewId?: string | null; // Added for generateMoreQuestions
 }
 
-export function QuestionsList({
-    questions,
-    handleAnswerChange,
-    submitAnswer,
-    toggleFeedback,
-    readOnly = false,
-    interviewId = null
-}: QuestionsListProps) {
-    const [isGenerating, setIsGenerating] = useState(false);
+export function QuestionsList({ readOnly = false }: QuestionsListProps) {
+    const {
+        interviewData,
+        interviewId,
+        generateMoreQuestions
+    } = useInterview();
+    const questions = interviewData?.questions || [];
 
-    const generateMoreQuestions = async () => {
-        setIsGenerating(true);
+    const [isGeneratingMore, setIsGeneratingMore] = useState(false);
 
+    const handleGenerateMore = async () => {
+        if (isGeneratingMore) return;
+
+        setIsGeneratingMore(true);
         try {
-            if (!interviewId) {
-                console.error('No interview ID found');
-                return;
-            }
-
-            const res = await fetch('/api/generate-more-questions', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    interviewId,
-                    currentCount: questions.length
-                }),
-            });
-
-            if (!res.ok) throw new Error('Failed to generate more questions');
-
-            const newQuestions = await res.json();
-            // Note: Since we're using SWR mutations, we'll handle this in the parent component
-            // The parent should handle the mutation after receiving new questions
-            // We'll need to return the new questions to the parent
-            return newQuestions;
+            await generateMoreQuestions();
         } catch (error) {
-            console.error('Error generating more questions:', error);
-            throw error;
+            console.error('Failed to generate more questions:', error);
         } finally {
-            setIsGenerating(false);
+            setIsGeneratingMore(false);
         }
     };
 
-    // Determine if we should show submit button in read-only mode
-    const shouldShowSubmit = (question: Question) => {
-        if (!readOnly) return true;
-        return !question.isAnswered && question.userAnswer?.trim();
-    };
+    // // Determine if we should show submit button in read-only mode
+    // const shouldShowSubmit = (questionId: string) => {
+    //     if (!readOnly) return true;
+
+    //     const question = questions.find(q => q.id === questionId);
+    //     return question && !question.isAnswered && question.userAnswer?.trim();
+    // };
+    // console.log("HDHFHDF", !readOnly && interviewId)
+    console.log("ReadOnly", readOnly)
+    console.log("InterviewId", interviewId)
 
     return (
-        <div className="space-y-4">
-            {questions.map((question, index) => (
-                <motion.div
-                    key={question.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{
-                        delay: index * 0.05,
-                        type: "spring",
-                        stiffness: 100
-                    }}
-                >
-                    <QuestionCard
-                        question={question}
-                        handleAnswerChange={handleAnswerChange}
-                        submitAnswer={shouldShowSubmit(question) ? submitAnswer : undefined}
-                        toggleFeedback={toggleFeedback}
-                        readOnly={readOnly && question.isAnswered} // Only enforce readOnly for answered questions
-                    />
-                </motion.div>
-            ))}
+        <div className="space-y-4 w-full">
+            <AnimatePresence>
+                {questions.map((question, index) => (
+                    <motion.div
+                        key={question.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.95 }}
+                        transition={{
+                            delay: index * 0.05,
+                            type: "spring",
+                            stiffness: 100
+                        }}
+                        className="w-full"
+                    >
+                        <QuestionCard
+                            question={question}
+                            readOnly={false} // Only enforce readOnly for answered questions
+                        />
+                    </motion.div>
+                ))} 
+            </AnimatePresence>
 
             {/* Only show the "Generate More Questions" button if not in readOnly mode */}
-            {!readOnly && (
-                <Button
-                    variant="outline"
-                    className="w-full py-6"
-                    onClick={async () => {
-                        try {
-                            const newQuestions = await generateMoreQuestions();
-                            // Parent component should handle the mutation with SWR
-                            // This assumes the parent is listening for a promise resolution
-                            return newQuestions;
-                        } catch (error) {
-                            console.error('Error generating more questions:', error);
-                            // Error is already logged in generateMoreQuestions
-                        }
-                    }}
-                    disabled={isGenerating}
+            {!readOnly && interviewId && (
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: questions.length * 0.05 + 0.1 }}
                 >
-                    {isGenerating ? (
-                        <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Generating...
-                        </>
-                    ) : (
-                        <>
-                            <PlusCircle className="mr-2 h-4 w-4" />
-                            Generate More Questions
-                        </>
-                    )}
-                </Button>
+                    <Button
+                        variant="outline"
+                        className="w-full py-6 group transition-all duration-300 hover:bg-blue-50"
+                        onClick={handleGenerateMore}
+                        disabled={isGeneratingMore}
+                    >
+                        {isGeneratingMore ? (
+                            <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Generating more questions...
+                            </>
+                        ) : (
+                            <>
+                                <PlusCircle className="mr-2 h-4 w-4 group-hover:scale-110 transition-transform" />
+                                Generate More Questions
+                            </>
+                        )}
+                    </Button>
+                </motion.div>
+            )}
+
+            {questions.length === 0 && !isGeneratingMore && (
+                <div className="text-center p-8 border border-dashed rounded-lg">
+                    <p className="text-gray-500">No questions available</p>
+                </div>  
             )}
         </div>
     );

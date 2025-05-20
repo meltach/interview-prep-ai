@@ -44,6 +44,12 @@ model Account {
   @@unique([provider, providerAccountId])
 }
 
+enum InterviewStatus {
+  active
+  completed
+  archived
+}
+
 model InterviewSession {
   id         String     @id @default(cuid())
   userId     String
@@ -51,7 +57,7 @@ model InterviewSession {
   resume     String     @db.Text
   resumeFile String?    // Optional file path to stored resume
   questions  Question[]
-  status     String     @default("active") // active, completed, archived
+  status     InterviewStatus @default(active)   
   createdAt  DateTime   @default(now())
   updatedAt  DateTime   @updatedAt
   user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)

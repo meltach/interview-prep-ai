@@ -1,153 +1,191 @@
 'use client';
 
-import { Upload, Check } from 'lucide-react';
+import { useState, useRef } from 'react';
+import { Upload, FileText, Loader2, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
-import { useRef, useState } from 'react';
-import { LoadingSpinner } from './skeletons';
-import { InterviewFormState } from '@/app/hooks/useInterviewForm';
+import { Textarea } from '@/components/ui/textarea';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { useInterview } from '@/app/context/InterviewContext';
+import { motion } from 'framer-motion';
 
-interface SetupFormProps {
-    formState: InterviewFormState;
-    updateField: <K extends keyof InterviewFormState>(field: K, value: InterviewFormState[K]) => void;
-    handleFileUpload: (file: File | null) => void;
-    generateQuestions: () => Promise<void>;
-    isGenerating: boolean;
-    isParsing: boolean;
-}
+export function SetupForm() {
+    const {
+        role,
+        resume,
+        fileName,
+        updateField,
+        handleFileUpload,
+        generateQuestions,
+        isGenerating,
+        isParsing 
+    } = useInterview();
 
-export function SetupForm({
-    formState,
-    updateField,
-    handleFileUpload,
-    generateQuestions,
-    isGenerating,
-    isParsing
-}: SetupFormProps) {
+    const [isDragging, setIsDragging] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
-    const { role, resume, fileName } = formState;
-    const [showTooltip, setShowTooltip] = useState(false);
 
+    const handleDragOver = (e: React.DragEvent) => {
+        e.preventDefault();
+        setIsDragging(true);
+    };
 
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const uploadedFile = e.target.files?.[0];
-        if (uploadedFile) {
-            handleFileUpload(uploadedFile);
+    const handleDragLeave = () => {
+        setIsDragging(false);
+    };
+
+    const handleDrop = (e: React.DragEvent) => {
+        e.preventDefault();
+        setIsDragging(false);
+
+        if (e.dataTransfer.files.length > 0) {
+            handleFileUpload(e.dataTransfer.files[0]);
         }
     };
 
-    const isLoading = isGenerating || isParsing;
-    const isButtonDisabled = !role || (!formState.file && !resume) || isLoading;
+    const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files.length > 0) {
+            handleFileUpload(e.target.files[0]);
+        }
+    };
 
-    const tooltipMessage = !role
-        ? "Role is required"
-        : (!formState.file && !resume)
-            ? "Resume is required (upload or paste)"
-            : "";
+    const handleClearFile = () => {
+        updateField('file', null);
+        updateField('fileName', '');
+        if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+        }
+    };
+
+    const canSubmit = role.trim() && (resume.trim() || fileName);
 
     return (
-        <Card className="w-full mx-auto">
-            <CardHeader>
-                <CardTitle className="text-xl">Let&#39;s prepare for your interview</CardTitle>
-            </CardHeader>
-            <CardContent>
-                <div className="space-y-6">
-                    <div className="space-y-3">
-                        <Label htmlFor="role" className="text-gray-700 dark:text-gray-300">
-                            What role are you interviewing for?
-                        </Label>
+        <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="w-full max-w-3xl mx-auto"
+        >
+            <Card className="shadow-md">
+                <CardHeader>
+                    <CardTitle className="text-2xl">Interview Preparation</CardTitle>
+                    <CardDescription>
+                        Enter your target role and upload your resume. We&apos;ll generate tailored interview questions.
+                    </CardDescription>
+                </CardHeader>
+
+                <CardContent className="space-y-6">
+                    {/* Role Input */}
+                    <div className="space-y-2">
+                        <Label htmlFor="role">Target Job Role</Label>
                         <Input
                             id="role"
-                            placeholder="e.g. Frontend Engineer, Product Manager"
+                            placeholder="e.g. Frontend Developer, Product Manager, Data Scientist"
                             value={role}
                             onChange={(e) => updateField('role', e.target.value)}
-                            className="bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600"
+                            className="w-full"
                         />
                     </div>
 
+                    {/* Resume Upload Section */}
                     <div className="space-y-2">
-                        <Label>Upload or paste your resume</Label>
-                        <div className="space-y-4">
-                            <Textarea
-                                placeholder="Paste your resume here..."
-                                className="min-h-32"
-                                value={resume}
-                                onChange={(e) => updateField('resume', e.target.value)}
+                        <Label htmlFor="resume">Your Resume</Label>
+
+                        {/* File Upload Area */}
+                        <div
+                            className={`border-2 border-dashed rounded-lg p-8 text-center transition-all ${isDragging ? 'border-blue-500 bg-blue-50' : 'border-gray-300 hover:border-gray-400'
+                                }`}
+                            onDragOver={handleDragOver}
+                            onDragLeave={handleDragLeave}
+                            onDrop={handleDrop}
+                        >
+                            <input
+                                type="file"
+                                id="resume-file"
+                                ref={fileInputRef}
+                                className="hidden"
+                                accept=".pdf,.doc,.docx,.txt"
+                                onChange={handleFileInputChange}
                             />
 
-                            <div className="flex items-center">
-                                <Separator className="flex-1" />
-                                <span className="px-4 text-sm text-gray-500">OR</span>
-                                <Separator className="flex-1" />
-                            </div>
-
-                            <div className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-lg p-6 bg-gray-50">
-                                <Upload className="h-6 w-6 text-gray-400 mb-2" />
-                                <p className="text-sm text-gray-600 mb-2">Upload your resume (PDF, TXT)</p>
-                                <Button
-                                    variant="outline"
-                                    onClick={() => fileInputRef.current?.click()}
-                                    disabled={isLoading}
-                                >
-                                    Browse Files
-                                    <input
-                                        ref={fileInputRef}
-                                        type="file"
-                                        className="hidden"
-                                        onChange={handleFileChange}
-                                        accept=".pdf,.txt"
-                                        disabled={isLoading}
-                                    />
-                                </Button>
-                                {fileName && (
-                                    <div className="mt-3 text-sm text-gray-600 flex items-center">
-                                        <Check className="h-4 w-4 text-green-500 mr-1" />
-                                        {fileName}
-                                        {formState.file?.type === 'application/pdf' && (
-                                            <span className="ml-2 text-gray-500 text-xs">
-                                                (Will be processed when generating questions)
-                                            </span>
-                                        )}
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                    <div
-                        className="relative w-full"
-                        onMouseEnter={() => {
-                            if (isButtonDisabled && tooltipMessage) setShowTooltip(true);
-                        }}
-                        onMouseLeave={() => setShowTooltip(false)}
-                    >
-                        <Button
-                            className="w-full bg-blue-600 hover:bg-blue-700 transition-colors relative"
-                            onClick={generateQuestions}
-                            disabled={isButtonDisabled}
-                        >
-                            {isLoading ? (
-                                <div className="flex items-center gap-2">
-                                    <LoadingSpinner size={4} />
-                                    <span>
-                                        {isParsing ? "Processing file..." : "Generating questions..."}
-                                    </span>
+                            {fileName ? (
+                                <div className="flex items-center justify-center space-x-2">
+                                    <FileText className="h-6 w-6 text-blue-500" />
+                                    <span className="font-medium">{fileName}</span>
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={handleClearFile}
+                                        className="text-red-500"
+                                    >
+                                        <Trash2 className="h-4 w-4" />
+                                    </Button>
                                 </div>
                             ) : (
-                                'Generate Interview Questions'
+                                <div className="space-y-4">
+                                    <div className="flex justify-center">
+                                        <Upload className="h-10 w-10 text-gray-400" />
+                                    </div>
+                                        <div>
+                                            <p className="text-gray-600">Drag and drop your resume file here, or</p>
+                                            <Button
+                                                variant="ghost"
+                                                className="text-blue-500 mt-2"
+                                                onClick={() => fileInputRef.current?.click()}
+                                            >
+                                                Browse files
+                                            </Button>
+                                    </div>
+                                    <p className="text-xs text-gray-400">Supports PDF, DOC, DOCX, and TXT files (5MB max)</p>
+                                </div>
                             )}
-                            {isButtonDisabled && tooltipMessage && showTooltip && (
-                                <span className="absolute left-1/2 -translate-x-1/2 -top-10 bg-gray-800 text-white text-xs rounded px-3 py-1 shadow-lg z-10 whitespace-nowrap">
-                                    {tooltipMessage}
+                        </div>
+
+                        {/* Resume Text Area */}
+                        <div className="mt-4">
+                            <Label htmlFor="resume-text" className="flex justify-between">
+                                <span>Or paste your resume content</span>
+                                <span className="text-xs text-gray-500">
+                                    {resume.length} characters
                                 </span>
-                            )}
-                        </Button>
+                            </Label>
+                            <Textarea
+                                id="resume-text"
+                                placeholder="Paste the content of your resume here..."
+                                value={resume}
+                                onChange={(e) => updateField('resume', e.target.value)}
+                                className="min-h-32 mt-1"
+                            />
+                        </div>
                     </div>
-                </div>
-            </CardContent>
-        </Card>
+                </CardContent>
+
+                <CardFooter className="flex justify-end space-x-4">
+                    <Button
+                        onClick={generateQuestions}
+                        disabled={!canSubmit || isGenerating || isParsing}
+                        className="px-6"
+                    >
+                        {isGenerating ? (
+                            <>
+                                {isParsing ? (
+                                    <>
+                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                        Parsing resume...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                        Generating questions...
+                                    </>
+                                )}
+                            </>
+                        ) : (
+                            'Generate Interview Questions'
+                        )}
+                    </Button>
+                </CardFooter>
+            </Card>
+        </motion.div>
     );
 }

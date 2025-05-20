@@ -16,6 +16,7 @@ export function QuestionsList({ readOnly = false }: QuestionsListProps) {
         interviewData,
         interviewId,
         generateMoreQuestions
+
     } = useInterview();
     const questions = interviewData?.questions || [];
 
@@ -33,17 +34,6 @@ export function QuestionsList({ readOnly = false }: QuestionsListProps) {
             setIsGeneratingMore(false);
         }
     };
-
-    // // Determine if we should show submit button in read-only mode
-    // const shouldShowSubmit = (questionId: string) => {
-    //     if (!readOnly) return true;
-
-    //     const question = questions.find(q => q.id === questionId);
-    //     return question && !question.isAnswered && question.userAnswer?.trim();
-    // };
-    // console.log("HDHFHDF", !readOnly && interviewId)
-    console.log("ReadOnly", readOnly)
-    console.log("InterviewId", interviewId)
 
     return (
         <div className="space-y-4 w-full">

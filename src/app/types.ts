@@ -26,6 +26,7 @@ export interface Question {
   interviewId?: string
   userAnswer?: string
   isAnswered: boolean
+  stream: boolean
   isSubmitting?: boolean
   feedback?: string
   showFeedback?: boolean

@@ -20,7 +20,6 @@ import {
 import { useInterview } from '../context/InterviewContext';
 import { Question } from '../types';
 import { Badge } from '@/components/ui/badge';
-// import { Badge } from '@/components/ui/badge';
 
 // Custom hook for text streaming animation
 function useTextAnimation(text: string, speed = 10) {
@@ -157,19 +156,20 @@ function AnswerInput({
 type FeedbackSectionProps = {
     feedback: string;
     isOpen: boolean;
+    stream: boolean;
     onToggle: () => void;
     isReadOnly: boolean;
 };
 
-function FeedbackSection({ feedback, isOpen, onToggle, isReadOnly }: FeedbackSectionProps) {
-    const { streamedText, isStreaming } = useTextAnimation(feedback);
+function FeedbackSection({ feedback, isOpen, stream, onToggle, isReadOnly }: FeedbackSectionProps) {
+    const { streamedText, isStreaming } = useTextAnimation(stream ? feedback : '');
 
     return (
-        <Collapsible open={isOpen} onOpenChange={onToggle}>
-            <CollapsibleTrigger asChild>
+        <Collapsible open={isOpen} onOpenChange={onToggle} className="w-full">
+            <CollapsibleTrigger asChild >
                 <Button
                     variant="secondary"
-                    className="w-full justify-between mt-4"
+                    className="justify-between w-full mt-4"
                 >
                     <span>Feedback</span>
                     {isOpen ? (
@@ -187,7 +187,7 @@ function FeedbackSection({ feedback, isOpen, onToggle, isReadOnly }: FeedbackSec
                     <div className="p-4 bg-slate-50 rounded-lg text-gray-700 text-sm leading-relaxed space-y-2">
                         <div className="markdown-preview">
                             <ReactMarkdown>
-                                {isReadOnly
+                                {isReadOnly || !stream
                                     ? feedback || ''
                                     : streamedText + (isStreaming ? ' ▋' : '')
                                 }
@@ -257,9 +257,10 @@ export default function QuestionCard({ question, readOnly }:
             </CardContent>
 
             {question.isAnswered && !isEditing && (
-                <CardFooter className="flex-col">
+                <CardFooter className="flex-col w-full">
                     <FeedbackSection
                         feedback={question.feedback || ''}
+                        stream={question.stream || false}
                         isOpen={question.showFeedback || false}
                         onToggle={() => toggleFeedback(question.id)}
                         isReadOnly={readOnly}

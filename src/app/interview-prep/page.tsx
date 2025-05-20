@@ -10,40 +10,6 @@ import { QuestionSkeleton } from '@/app/components/skeletons';
 import { useInterview } from '@/app/context/InterviewContext';
 import { motion, AnimatePresence } from 'framer-motion';
 
-export function parseQuestions(
-    rawQuestions: string[]
-): { text: string; rationale: string }[] {
-    const formattedQuestions: { text: string; rationale: string }[] = []
-
-    // Skip the introduction (index 0) and process question-rationale pairs
-    for (let i = 1; i < rawQuestions.length; i += 2) {
-        // Check if this is a question (typically odd indices: 1, 3, 5)
-        if (i < rawQuestions.length && rawQuestions[i].includes('"')) {
-            const questionText = rawQuestions[i]
-                // Clean up the question - remove numbering if present
-                .replace(/^\d+\.\s*/, '')
-                // Remove extra quotation marks
-                .replace(/^["']|["']$/g, '')
-                .trim()
-
-            // Get the rationale (the next item in the array, if it exists)
-            let rationale = ''
-            if (i + 1 < rawQuestions.length) {
-                // Extract the actual explanation, removing any markdown formatting
-                rationale = rawQuestions[i + 1]
-                    .replace(/^\s*\*\s*\*\*Why it's challenging:\*\*/, '')
-                    .replace(/^\s*Why it's challenging:\s*/, '')
-                    .replace(/^\s*\*\s*/, '')
-                    .trim()
-            }
-
-            formattedQuestions.push({ text: questionText, rationale })
-        }
-    }
-
-    return formattedQuestions
-}
-
 export default function ImprovedInterviewPrepPage() {
     const {
         role,
@@ -54,16 +20,7 @@ export default function ImprovedInterviewPrepPage() {
         resetInterview,
     } = useInterview();
 
-    const data = [
-        'Given your resume states "Over 5 years of vanilla Java developer," and we are interviewing for a Senior JavaScript developer position, could you describe a time when you successfully translated a complex Java-based concept or pattern into a JavaScript-equivalent solution, highlighting the challenges you faced and how you overcame them to ensure a smooth transition for yourself and any team members involved? (Technical & Reference to resume)',
-        'Considering your background in Java, which is known for its strong typing, and now transitioning to a language like JavaScript, which is dynamically typed, how would you approach architecting a large-scale JavaScript application to ensure code maintainability, reduce potential runtime errors, and promote collaboration amongst a development team? (Situational/Problem-Solving)',
-        "Tell me about a situation where you had to learn a completely new technology or paradigm quickly, specifically something outside of your comfort zone in Java, and apply it to a project. What steps did you take to master the new skill, and how did you ensure that your contributions met the project's quality standards? (Behavioral)"
-    ]
-
-    console.log("persed data", parseQuestions(data));
-
     const isLoading = isGenerating || isParsing;
-    console.log("status", status);
 
     return (
         <InterviewLayout>

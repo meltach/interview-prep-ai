@@ -77,6 +77,7 @@ export function InterviewProvider({ children }: InterviewProviderProps) {
     file: null,
     fileName: '',
   });
+  console.log("FormState", formState)
 
   // Status states
   const [status, setStatus] = useState<InterviewStatus>('setup');
@@ -249,50 +250,6 @@ export function InterviewProvider({ children }: InterviewProviderProps) {
     mutate({ ...(interviewData || {}), questions: updatedQuestions }, false);
   };
 
-  // Submit an answer
-  // const submitAnswer = async (id: string) => {
-  //   if (!questionsData || !interviewId) return;
-
-  //   // Find question
-  //   const question = questionsData.find(q => q.id === id);
-  //   if (!question || !question.userAnswer?.trim()) return;
-
-  //   // Create optimistic update
-  //   const updatedQuestions = questionsData.map(q =>
-  //     q.id === id ? { ...q, isSubmitting: true, showFeedback: true } : q
-  //   );
-
-  //   // Apply optimistic update
-  //   mutate({ ...(interviewData || {}), questions: updatedQuestions }, false);
-
-  //   try {
-  //     const res = await fetch('/api/submit-answer', {
-  //       method: 'POST',
-  //       headers: {
-  //         'Content-Type': 'application/json',
-  //       },
-  //       body: JSON.stringify({
-  //         questionId: id,
-  //         answer: question.userAnswer
-  //       }),
-  //     });
-
-  //     if (!res.ok) throw new Error('Failed to submit answer');
-
-  //     // Refresh data from server
-  //     await mutate()
-  //   } catch (error) {
-  //     console.error('Error submitting answer:', error);
-  //     toast.error('Failed to submit answer');
-
-  //     // Revert optimistic update
-  //     const revertedQuestions = updatedQuestions.map(q =>
-  //       q.id === id ? { ...q, isSubmitting: false } : q
-  //     );
-  //     mutate({ ...(interviewData || {}), questions: revertedQuestions }, false);
-  //   }
-  // };
-
   const submitAnswer = async (id: string) => {
     if (!questionsData || !interviewId) return;
 
@@ -306,7 +263,8 @@ export function InterviewProvider({ children }: InterviewProviderProps) {
     );
 
     // Apply update to show loading state
-    mutate({ ...(interviewData || {}), questions: updatedQuestions }, false);
+    mutate({ ...(interviewData || {}), questions: updatedQuestions, }, false);
+    console.log("UpdatedQuestions", updatedQuestions)
 
     try {
       const res = await fetch('/api/submit-answer', {
@@ -332,15 +290,16 @@ export function InterviewProvider({ children }: InterviewProviderProps) {
           isSubmitting: false,
           isAnswered: true,
           feedback: feedbackData.feedback,
-          showFeedback: true
+          showFeedback: true,
+          stream: feedbackData.stream,
         } : q
       );
 
       // Update the UI immediately with the feedback
       mutate({ ...(interviewData || {}), questions: updatedWithFeedback }, false);
 
-      // Optional: Refresh from server to ensure consistency
-      // This can be removed if you want to rely solely on the local update
+      // if all questions are answered, mark the interview as completed
+
       // await mutate();
     } catch (error) {
       console.error('Error submitting answer:', error);

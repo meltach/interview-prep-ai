@@ -86,6 +86,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       feedback: savedAnswer.feedback?.content || feedbackContent,
       answerId: savedAnswer.id,
+      isAnswered: true,
+      stream: true,
     })
   } catch (err) {
     console.error('[Submit Answer API Error]', err)

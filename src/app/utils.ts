@@ -1,7 +1,7 @@
 type PastSession = {
   id: string
   role: string
-  createdAt: string
+  createdAt: Date
 }
 
 type GroupedSessions = {
@@ -48,7 +48,7 @@ export const groupSessionsByDate = (
 }
 
 // Format date for display
-export const formatDate = (dateString: string) => {
+export const formatDate = (dateString: Date) => {
   const date = new Date(dateString)
   return date.toLocaleDateString('en-US', {
     month: 'short',
@@ -57,7 +57,7 @@ export const formatDate = (dateString: string) => {
 }
 
 // Format time for display
-export const formatTime = (dateString: string) => {
+export const formatTime = (dateString: Date) => {
   const date = new Date(dateString)
   return date.toLocaleTimeString('en-US', {
     hour: '2-digit',

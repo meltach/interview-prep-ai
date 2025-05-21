@@ -18,7 +18,7 @@ import { useInterviewSession } from '../hooks/useInterviewSession';
 type PastSession = {
     id: string;
     role: string;
-    createdAt: string;
+    createdAt: Date;
 };
 
 type GroupedSessions = {

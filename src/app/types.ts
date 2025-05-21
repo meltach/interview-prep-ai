@@ -14,7 +14,7 @@ declare module 'next-auth' {
 export type PastSession = {
   id: string
   role: string
-  createdAt: string
+  createdAt: Date
 }
 
 /**
@@ -38,7 +38,7 @@ export interface Question {
 export interface InterviewResponse {
   id: string
   jobRole: string
-  createdAt: string
+  createdAt: Date
 }
 
 /**
@@ -49,7 +49,7 @@ export interface Interview {
   role: string
   status: 'active' | 'completed'
   questions: Question[]
-  createdAt: string
+  createdAt: Date
   updatedAt: string
 }
 
@@ -84,23 +84,24 @@ export interface InterviewSessionResponse {
   text: string
   rationale: string | null
   order: number
-  createdAt: string
-  updatedAt: string
+  createdAt: Date
   answer: {
     id: string
     questionId: string
     text: string
-    createdAt: string
-    updatedAt: string
+    createdAt: Date
     feedback: {
       id: string
       content: string
-      createdAt: string
-      updatedAt: string
-    }
+      createdAt: Date
+      updatedAt?: Date
+      answerId?: string
+      clarity?: number | null
+      relevance?: number | null
+      depth?: number | null
+    } | null
   } | null
 }
-
 /**
  * Response from the API when generating more questions
  */

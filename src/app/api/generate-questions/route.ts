@@ -4,7 +4,6 @@ import { prisma } from '@/lib/prisma'
 import pdf from 'pdf-parse'
 import { generateInterviewQuestions } from '../services'
 import { authOptions } from '../auth/[...nextauth]/auth-options'
-import { Question } from '@/app/types'
 
 // Define allowed MIME types
 const ALLOWED_FILE_TYPES = [
@@ -162,17 +161,19 @@ export async function POST(req: NextRequest) {
     )
 
     // Format response
-    const responseData = savedQuestions.map((q: Question) => ({
-      id: q.id,
-      text: q.text,
-      rationale: q.rationale,
-      userAnswer: '',
-      feedback: '',
-      showFeedback: false,
-      isAnswered: false,
-      isSubmitting: false,
-      interviewId: interviewSession.id,
-    }))
+    const responseData = savedQuestions.map(
+      (q: { id: string; text: string; rationale: string | null }) => ({
+        id: q.id,
+        text: q.text,
+        rationale: q.rationale,
+        userAnswer: '',
+        feedback: '',
+        showFeedback: false,
+        isAnswered: false,
+        isSubmitting: false,
+        interviewId: interviewSession.id,
+      })
+    )
 
     return NextResponse.json(responseData)
   } catch (err) {

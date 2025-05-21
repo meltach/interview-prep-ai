@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { prisma } from '@/lib/prisma'
 import { authOptions } from '../../auth/[...nextauth]/auth-options'
+import { InterviewSessionResponse } from '@/app/types'
 type Params = Promise<{
   interviewId: string
 }>
@@ -42,17 +43,19 @@ export async function GET(
       return new NextResponse('Interview session not found', { status: 404 })
     }
 
-    const formattedQuestions = interviewSession.questions.map((question) => ({
-      id: question.id,
-      text: question.text,
-      userAnswer: question.answer?.text || '',
-      feedback: question.answer?.feedback?.content || '',
-      showFeedback: false,
-      isAnswered: !!question.answer,
-      isSubmitting: false,
-      answerId: question.answer?.id || undefined,
-      interviewId: interviewSession.id,
-    }))
+    const formattedQuestions = interviewSession.questions.map(
+      (question: InterviewSessionResponse) => ({
+        id: question.id,
+        text: question.text,
+        userAnswer: question.answer?.text || '',
+        feedback: question.answer?.feedback?.content || '',
+        showFeedback: false,
+        isAnswered: !!question.answer,
+        isSubmitting: false,
+        answerId: question.answer?.id || undefined,
+        interviewId: interviewSession.id,
+      })
+    )
 
     return NextResponse.json({
       id: interviewSession.id,

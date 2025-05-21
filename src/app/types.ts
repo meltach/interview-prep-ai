@@ -26,12 +26,19 @@ export interface Question {
   interviewId?: string
   userAnswer?: string
   isAnswered: boolean
+  rationale?: string
   stream: boolean
   isSubmitting?: boolean
   feedback?: string
   showFeedback?: boolean
   createdAt?: string
   updatedAt?: string
+}
+
+export interface InterviewResponse {
+  id: string
+  jobRole: string
+  createdAt: string
 }
 
 /**
@@ -69,6 +76,29 @@ export interface SubmitAnswerResponse {
 export interface GenerateMoreQuestionsParams {
   interviewId: string
   currentCount: number
+}
+
+export interface InterviewSessionResponse {
+  id: string
+  interviewId: string
+  text: string
+  rationale: string | null
+  order: number
+  createdAt: string
+  updatedAt: string
+  answer: {
+    id: string
+    questionId: string
+    text: string
+    createdAt: string
+    updatedAt: string
+    feedback: {
+      id: string
+      content: string
+      createdAt: string
+      updatedAt: string
+    }
+  } | null
 }
 
 /**

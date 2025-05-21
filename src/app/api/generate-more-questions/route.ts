@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { prisma } from '@/lib/prisma'
 import { generateMoreQuestions } from '../services'
 import { authOptions } from '../auth/[...nextauth]/auth-options'
+import { Question } from '@/app/types'
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions)
@@ -44,7 +45,7 @@ export async function POST(req: NextRequest) {
       select: { text: true },
     })
 
-    const existingQuestionsText = existingQuestions.map((q) => q.text)
+    const existingQuestionsText = existingQuestions.map((q: Question) => q.text)
 
     // Generate new questions with AI service
     const rawQuestions = await generateMoreQuestions(

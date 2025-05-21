@@ -2,6 +2,7 @@ import { prisma } from '@/lib/prisma'
 import { getServerSession } from 'next-auth'
 import { NextResponse } from 'next/server'
 import { authOptions } from '../auth/[...nextauth]/auth-options'
+import { InterviewResponse } from '@/app/types'
 
 export async function GET() {
   const session = await getServerSession(authOptions)
@@ -22,7 +23,7 @@ export async function GET() {
     })
 
     return NextResponse.json(
-      interviews.map((interview) => ({
+      interviews.map((interview: InterviewResponse) => ({
         id: interview.id,
         role: interview.jobRole,
         createdAt: interview.createdAt,

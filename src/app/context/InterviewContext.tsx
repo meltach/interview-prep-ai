@@ -77,7 +77,6 @@ export function InterviewProvider({ children }: InterviewProviderProps) {
     file: null,
     fileName: '',
   });
-  console.log("FormState", formState)
 
   // Status states
   const [status, setStatus] = useState<InterviewStatus>('setup');
@@ -180,7 +179,6 @@ export function InterviewProvider({ children }: InterviewProviderProps) {
 
       const data = await res.json();
       const newInterviewId = data[0]?.interviewId;
-      console.log('Generated questions:', data);
 
       if (newInterviewId) {
         // await mutate(); // Refresh the questions data
@@ -199,7 +197,6 @@ export function InterviewProvider({ children }: InterviewProviderProps) {
     } catch (err) {
       console.error('Error generating questions:', err);
       toast.error('Failed to generate questions');
-      setStatus('setup');
     } finally {
       setIsGenerating(false);
       setIsParsing(false);
@@ -264,7 +261,6 @@ export function InterviewProvider({ children }: InterviewProviderProps) {
 
     // Apply update to show loading state
     mutate({ ...(interviewData || {}), questions: updatedQuestions, }, false);
-    console.log("UpdatedQuestions", updatedQuestions)
 
     try {
       const res = await fetch('/api/submit-answer', {

@@ -148,7 +148,7 @@ Generate 2 challenging, role-specific interview questions that:
 - Are different from these existing questions:
 ${existingQuestions.map((q) => `- "${q}"`).join('\n')}
 
-Each question should assess the candidate's actual fit for this ${role} role. Include one behavioral question and one technical/situational question. Format each as a complete question without numbering.
+Each question should assess the candidate's actual fit for this ${role} role. Include one behavioral question and one technical/situational question. Format each as a complete question no explanations no numbering.
 `
 
   const content = await generateText(prompt)
@@ -187,6 +187,7 @@ Provide concise, constructive feedback (max 150 words) that:
 4. If relevant, suggests a brief example of how a stronger response might be phrased
 
 Use markdown formatting for clarity: **bold** for key points and \`code\` for any technical terms.
+**Do not include any introductory phrases or explanations. Output only the feedback.**
 `
 
   return await generateText(prompt)

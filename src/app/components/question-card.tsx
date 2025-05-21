@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { ChevronDown, ChevronUp, Send, Edit, X } from 'lucide-react';
-import ReactMarkdown from 'react-markdown';
+import Markdown from 'markdown-to-jsx'
 import {
     Card,
     CardContent,
@@ -60,7 +60,7 @@ function QuestionPrompt({ text }: { text: string }) {
 
     return (
         <div className="markdown-preview rounded-md">
-            <ReactMarkdown>{cleanText}</ReactMarkdown>
+            <Markdown>{cleanText}</Markdown>
         </div>
     );
 }
@@ -186,12 +186,12 @@ function FeedbackSection({ feedback, isOpen, stream, onToggle, isReadOnly }: Fee
                     <h4 className="text-sm font-semibold text-gray-700 mb-2">AI Feedback</h4>
                     <div className="p-4 bg-slate-50 rounded-lg text-gray-700 text-sm leading-relaxed space-y-2">
                         <div className="markdown-preview">
-                            <ReactMarkdown>
+                            <Markdown>
                                 {isReadOnly || !stream
                                     ? feedback || ''
                                     : streamedText + (isStreaming ? ' ▋' : '')
                                 }
-                            </ReactMarkdown>
+                            </Markdown>
                         </div>
                     </div>
                 </div>

@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
-import { authOptions } from '@/app/api/auth/[...nextauth]/route'
 import { prisma } from '@/lib/prisma'
 import pdf from 'pdf-parse'
 import { generateInterviewQuestions } from '../services'
+import { authOptions } from '../auth/[...nextauth]/auth-options'
 
 // Define allowed MIME types
 const ALLOWED_FILE_TYPES = [

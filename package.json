@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "prisma:generate": "prisma generate",
+    "generate": "npm run prisma:generate",
     "postinstall": "npm run generate"
   },
   "dependencies": {

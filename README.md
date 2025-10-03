@@ -1,6 +1,10 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+checkout here: https://interview-prep-ai-ten.vercel.app/interview-prep
+
+<img width="1266" height="849" alt="Screenshot 2025-10-03 at 10 47 04 AM" src="https://github.com/user-attachments/assets/1a918cf3-2946-42e8-9417-c86b6f05232f" />
+
 
 ## Getting Started
+
 
 First, run the development server:
 
